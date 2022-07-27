@@ -1,4 +1,4 @@
-# About this C++ note
+# About the C++ notes
 
 > version: 0.0.1
 
@@ -21,5 +21,5 @@
 - File location: Y station `/home/wangjl/data/project/learnCpp` 
 
 ## Logs
-*  2022.7.26 
+*  2022.7.26 1-P68
 

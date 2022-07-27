@@ -7,7 +7,9 @@
 
 
 * Part I Basics
-    * [README](A1/1_readme.md)
+    * [Start](A1/1_start.md)
+    * [变量与基本类型](A1/2_parameter_type.md)
+
 
 
 
