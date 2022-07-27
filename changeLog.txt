@@ -1,3 +1,3 @@
 v0.1 empty repo in Docker, can view on 3000 port, host 8003
 v0.2 add how to make this book 
-
+v0.3 correct sidebar

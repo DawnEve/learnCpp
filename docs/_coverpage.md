@@ -6,5 +6,5 @@
 * Multiple themes
 * Not build static html files
 
-[GitHub](https://github.com/DawnEve/learn_C)
+[GitHub](https://github.com/DawnEve/learnCpp)
 [Get Started](/A0/1_readme)

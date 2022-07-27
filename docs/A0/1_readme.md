@@ -1,11 +1,11 @@
-## How to make this book?
-Using `docsify` to view markdown files.
+# How to make this book?
 
+Using `docsify` to view markdown files. 
 The app has Dockered in `dawneve/docsify:4.4.4`.
 
 
 
-### (1) Start the environment in Docker
+## (1) Start the environment in Docker
 
 ```
 $ docker pull dawneve/docsify:4.4.4
@@ -27,7 +27,7 @@ http://192.168.2.120:8003/#/
 
 
 
-### (2) add new user in containner
+## (2) add new user in containner
 
 ```
 $ id #check your uid on host
@@ -46,25 +46,37 @@ Change the uid of user tom in the containner to your id on the host as shown abo
 Change owner of these files in the containner
 # chown -R tom *
 
-Then we can edit md files on the host with VIM or other text editer like vsCode through ssh.
 
 Start the server on port 3000/ host 8003
 # docsify serve docs
 ```
 
+Then we can:
+* Editing while viewing
+* Then we can edit md files on the host with VIM or other text editer like vsCode through ssh.
 
 
 
-### (3) Editing while view: add side bar
+
+
+
+## (3) add side bar
+
 ```
 $ cd docs/
 $ vim index.html
 <script> window.$docsify = { loadSidebar: true } </script> 
 
 $ vim _sidebar.md
-* [Chapter 0 Preface](A0/1_readme.md)
-* [Chapter 1 Basics](A1/1_readme.md)
-* [Chapter 2 Class](A2/1_readme.md)
+* [README](README.md)
+* Part O Preface
+    * [Make this book](A0/1_readme.md)
+    * [Resource](A0/2_resource.md)
+* Part I Basics
+    * [README](A1/1_readme.md)
+* [Part II Class](A2/1_readme.md)
+* [Part III template](A3/1_readme.md)
+* [Part IV algorithm](A4/1_readme.md)
 ```
 
 Control the sub menu shown level:
@@ -95,7 +107,7 @@ Overwrite _sidebar.md in nested folds:
 
 
 
-### (4) add top menu
+## (4) add top menu
 
 When the menu are very few, just edit index.html
 ```
@@ -128,7 +140,7 @@ $ vim _navbar.md
 
 
 
-### (5) add cover
+## (5) add cover
 
 Default cover is ./README.md, but we can add one.
 
@@ -154,7 +166,7 @@ $ vim _coverpage.md
 
 
 
-### (6) save source files to local
+## (6) save source files to local
 
 Save css and js to local, prevant loading…… problem.
 
@@ -169,26 +181,38 @@ $ mkdir static/js
 
 Save the css and js files.
 $ wget https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css -O static/css/vue.css
-$ wget https://cdn.jsdelivr.net/npm/docsify@4 -o static/js/docsify.min.js
+$ wget https://cdn.jsdelivr.net/npm/docsify@4 -O static/js/docsify.min.js
 ```
 
 
 
-### (7) Other tips
+## (7) Other tips
 
 > You need to create a `.nojekyll` in `./docs` to prevent GitHub Pages from ignoring files that begin with an underscore.
 
 
 
 
-### (8) Push to github
+## (8) Push to github
+
+```
+$ git remote add origin https://github.com/DawnEve/learnCpp.git
+http/https 不能用了。
+$ git remote add origin git@eve:DawnEve/learnCpp.git
+fatal: remote origin already exists. 
+
+$ git remote rm origin
+
+I am using multiple username on one machine.
+$ git remote add origin git@eve:DawnEve/learnCpp.git
+$ git push origin master
+```
+
+The repo of this docs: `https://github.com/DawnEve/learnCpp`
 
 
 
-
-
-
-### Refer
+## Refer
 
 - https://docsify.js.org/#/?id=docsify
 - https://github.com/docsifyjs/docsify/blob/develop/docs/_sidebar.md
