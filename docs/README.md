@@ -1,6 +1,6 @@
 # About the C++ notes
 
-> version: 0.0.1
+> version: 0.0.2
 
 
 ## Aims
@@ -21,5 +21,8 @@
 - File location: Y station `/home/wangjl/data/project/learnCpp` 
 
 ## Logs
-*  2022.7.26 1-P68
+
+### Part I
+  * 2022.7.26 1-P68/864
+  * 2022.7.28 P82/864
 

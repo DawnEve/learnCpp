@@ -1,7 +1,6 @@
 # How to make this book?
 
-Using `docsify` to view markdown files. 
-The app has Dockered in `dawneve/docsify:4.4.4`.
+Using `docsify` to view markdown files, which has been Dockered in `dawneve/docsify:4.4.4`.
 
 
 
