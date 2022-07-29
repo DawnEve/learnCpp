@@ -1,6 +1,6 @@
-# About the C++ notes
+# About this C++ note
 
-> version: 0.0.2
+> version: 0.6.1
 
 
 ## Aims
@@ -28,6 +28,7 @@
 ### Part I
   * 2022.7.26 1-P68/864
   * 2022.7.28 P82/864
+  * 2022.7.29 P112/864
 
 
 ## tags

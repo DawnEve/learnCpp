@@ -7,4 +7,4 @@
 * Not build static html files
 
 [GitHub](https://github.com/DawnEve/learnCpp)
-[Get Started](/A0/1_readme)
+[Get Started](/README)
