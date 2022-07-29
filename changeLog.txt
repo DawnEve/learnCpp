@@ -3,3 +3,4 @@ v0.2 add how to make this book
 v0.3 correct sidebar
 v0.4 P1-P68
 v0.5 to P82/864
+v0.6 to P112/864, vector

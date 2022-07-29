@@ -7,8 +7,9 @@
 
 
 * Part I Basics
-    * [Start](A1/1_start.md)
-    * [变量与基本类型](A1/2_parameter_type.md)
+    * [1.Start](A1/1_start.md)
+    * [2.变量与基本类型](A1/2_parameter_type.md)
+    * [3.字符串、向量和数组](A1/3_string_vector_array.md)
 
 
 
@@ -25,4 +26,6 @@
 * [Part IV algorithm](A4/1_readme.md)
 
 
+* Appendix
+    * [vscode 技巧](Z1/1_vscode.md)
 

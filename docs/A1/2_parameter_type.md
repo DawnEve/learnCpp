@@ -2,7 +2,7 @@
 
 `$ cd mkdir A1/2/`
 
-## 内置类型
+## 2.1 内置类型
 
 ### 类型转换
 
@@ -81,7 +81,7 @@ $ ./a.out
 
 
 
-## 变量
+## 2.2 变量
 
 初始化和赋值是两个完全不同的操作。区别是啥？ //todo
 
@@ -323,7 +323,7 @@ outside For: 100        15
 
 
 
-## 复合类型 compound type
+## 2.3 复合类型 compound type
 
 好几种，这里说 引用和指针。
 
@@ -778,6 +778,7 @@ int main(){
 
 #### 初始化和对 const 的引用
 
+允许const修饰的常量初始化为一个变量。
 
 > 意外：const修饰的r1，其值竟然被改变了。
 
@@ -852,7 +853,425 @@ $ ./a.out
 
 ### 指针和const
 
+允许一个指向常量的指针指向一个非常量对象。
+
+```
+#include<iostream>
+using namespace std;
+
+int main(){
+    const double pi=3.1415;
+
+    //存放常量对象的地址，需要指向常量的指针
+    //double *ptr=&pi; //错误：ptr是一个普通指针
+    // error: invalid conversion from ‘const double*’ to ‘double*’ [-fpermissive]
+
+    const double *cptr=&pi; //正确，cptr是一个指向双精度常量的指针
+    //*cptr=10; //错误，不能给 const 修饰的常量赋值
+    //error: assignment of read-only location ‘* cptr’
+
+    cout << "cptr=" <<cptr << ", *cptr=" << *cptr << endl;
+
+    return 0;
+}
+
+$ g++ b3_const_pointer.cpp 
+$ ./a.out 
+cptr=0x7ffddda93c68, *cptr=3.1415
+```
+
+> 例外情况，指向常量的指针，可以指向一个常量，通过修改常量来修改指针所指的值。
+
+```
+#include<iostream>
+using namespace std;
+
+int main(){
+    double pi=3.14;
+    double pi2=3.1415926;
+    const double *cptr;
+    cptr=&pi;
+    cout << "cptr=" << cptr << ", *cptr=" << *cptr << endl;
+
+    cptr=&pi2; //也就是说const修饰的指针变量是可以修改的
+    cout << "cptr=" << cptr << ", *cptr=" << *cptr << endl;
+
+    //*cptr=10.2; //但是不能通过指针修改其所指的对象的值
+    //error: assignment of read-only location ‘* cptr’
+
+    return 0;
+}
+
+$ g++ b3_const_pointer2.cpp 
+$ ./a.out 
+cptr=0x7ffe652baf00, *cptr=3.14
+cptr=0x7ffe652baf08, *cptr=3.14159
+```
+
+通俗解释：事项常量的指针或引用，不过是指针或引用的“自以为是”罢了，它们决定自己指向了常量，所以自觉的不去修改所指对象的值。但是这个值可以通过其他途径修改。
 
 
 
 
+#### const 指针 
+
+指针是对象，常量指针 (const pointer) 就是初始化后不能修改的指针对象。
+
+- 语法：把*放到const前面，定义一个指针是一个常量： `double pi = 3.14; double *const cpi= &pi;`
+- 指针变量中保存的那个地址不能修改，并不意味这该地址指向的值不能修改。
+- 如果想让指针指向的那个对象也是只读的，前面再加一个 const: `const double *const cpi2=&pi;`
+
+
+```
+#include<iostream>
+using namespace std;
+int main(){
+    double pi = 3.14; 
+    double *const cpi= &pi; //看这个定义，从右向左阅读
+    // 距离 cpi 最近的是 const，意味着 cpi 本身是常量，不能修改
+    // 接着是 * 表示 cpi 是一个指针
+    // 最后是 double 表示指针指向的是一个double变量，可以通过指针修改
+
+    const double *const cpi2=&pi;
+    //从右向左，这个最后的修饰符是一个 const，表示指针指向的也是一个常量，也不能通过指针修改。
+
+
+    cout << "pi=" << pi << ", addr &pi=" << &pi << endl;
+    cout << "1 cpi=" << cpi << ", value *cpi=" << *cpi << endl;
+    
+    //可以通过指针修改值
+    *cpi=3.1415926;
+    cout << "2 cpi=" << cpi << ", value *cpi=" << *cpi << endl;
+
+    //不能修改指针中保存的地址
+    double piLong=3.14159265358979;
+    //cpi=&piLong; //指针变量中保存的地址 只读
+    // error: assignment of read-only variable ‘cpi’
+
+    //对于 cpi2则指针变量中的地址是常量，指针指向的对象也是常量
+    //cpi2=&piLong; //error: assignment of read-only variable ‘cpi2’
+    //*cpi2=3.1; //error: assignment of read-only location ‘*(const double*)cpi2’
+
+    return 0;
+}
+
+$ g++ b3_const_pointer3.cpp 
+$ ./a.out 
+pi=3.14, addr &pi=0x7fff0a7bc878
+1 cpi=0x7fff0a7bc878, value *cpi=3.14
+2 cpi=0x7fff0a7bc878, value *cpi=3.14159
+```
+
+
+
+
+
+
+
+
+
+
+### 顶层 const
+
+指针对象是不是常量，指针指向的对象是不是常量，是两个独立的问题。
+
+- 顶层 top-level const 表示指针本身是一个常量。
+    * 更一般的，**顶层 const** 可以表示任意的对象是常量，对任意类型都适用：算术类型、类、指针等。
+- 底层 low-level const 表示指针所指的对象是一个常量。
+    * **底层const** 则与指针和引用等符合类型的基本类型部分有关。
+
+> 指针类型，既可以是顶层const，也可以是底层const。这一点和其他类型区别明显。
+
+
+```
+$ cat b4_const_level.cpp
+#include<iostream>
+using namespace std;
+int main(){
+    int i=150;
+    int *const pi=&i; // 不能改变 pi 的值，顶层const
+    const int ci=1024; // 不能改变 ci 的值，顶层const
+
+    const int *p2=&ci; //允许改变p2的值，这个一个 底层const
+    const int *const p3=p2; //靠右的const是顶层const，靠左的const是底层const
+    const int &ref=ci; //用于声明引用的const都是底层const
+
+    //当执行对象的拷贝时，常量是顶层const还是底层const区别明显。
+    //1. 其中，顶层 const 不受什么影响。
+    i=ci; //正确，拷贝 ci 的值，ci是一个顶层const，对此操作无影响
+    p2=p3; // 正确：p2和p3指向的对象类型相同，p3顶层const的部分不影响
+    //执行拷贝不改变被拷贝对象的值，所以拷如和考出的对象是否是常量没影响。
+
+    //2. 底层const有限制：考入和烤出的对象必须具有相同的底层const资格，或者两个对象的数据类型能转换。
+    // 非常量可以转为常量，反之不行。
+    
+    //int *p=p3; //错误: p3 包括底层const定义，而p没有
+    // error: invalid conversion from ‘const int*’ to ‘int*’ [-fpermissive]
+
+    p2=p3; //正确，p2和p3都是底层const
+    p2=&i; //正确， int* 能转为 const int *
+
+    //int &ref2=ci; //错误： 普通的 int & 不能绑定到 int 常量上
+    //error: binding reference of type ‘int&’ to ‘const int’ discards qualifiers
+    const int &ref3=ci; //正确， const int & 可以绑定到 const int 上
+
+    const int &ref4=i; //正确， const int & 可以绑定到 普通 int 上
+    
+    return 0;
+}
+```
+
+
+
+
+
+### constexpr 和常量表达式
+
+c++中有些情况要用常量表达式，见后文。
+
+常量表达式 (const expression) 是值不会改变，且在编译过程就能得到计算结果的表达式。
+
+
+- 字面量
+- 用常量表达式初始化的 const 对象也是常量表达式
+
+```
+const int max_files=20;  // max_files 是常量表达式
+const int limit = max_files +1; // limit 是常量表达式
+
+int staff_size=27; //staff_size不是常量表达式：数据类型是int，而不是 const int
+const int sz=get_size(); //sz 不是常量表达式：尽管是常量，但是数值需要运行时才能获取到
+```
+
+
+由于很难区分是不是，C++11标准， constexpr 类型，由编译器验证变量是否是一个 常量表达式。
+
+```
+$ cat b6_constexpr.cpp
+#include<iostream>
+using namespace std;
+
+int get_size(){
+    return sizeof(int)*5;
+}
+
+int main(){
+    // C++11
+    constexpr int mf=20;
+    constexpr int limit = mf+1;
+
+    //constexpr int sz=get_size();
+    // error: call to non-‘constexpr’ function ‘int get_size()’
+
+    return 0;
+}
+```
+
+> 你认定变量是一个常量表达式，那就优先声明为 constexpr 类型。
+
+
+
+
+
+#### 字面值类型
+
+函数内的变量地址不确定，不能用于定义 constexpr。
+
+
+#### 指针和 constexpr
+
+限定符 constexpr 仅对指针有效，对指针所指的对象无关。
+
+```
+const int *p = nullptr; //p 是一个指向 整型常量 的指针
+constexpr int *q=nullptr; //q是指向整数的 常量指针
+```
+
+
+
+
+
+
+
+
+
+## 2.5 处理类型
+
+### 类型别名 typedef
+
+> 传统方法是 `typedef int INT2;`，新标准是 `using INT3 = int;`
+
+```
+#include<iostream>
+using namespace std;
+
+int main(){
+    //1. typedef
+    typedef int bookNumber; //bookNumber 是 int 的同义词。
+    bookNumber book1=12;
+    int book2=12;
+
+    if(book1==book2)
+        cout << "equal" << endl;
+
+    //2. alias
+    using int2=int; //int2 是 int 的别名
+    int2 *p2=&book1;
+    cout << "addr &book1=" << &book1 << ", p2=" << p2 << ", *p2="<< *p2 <<endl;
+
+    return 0;
+}
+```
+
+
+#### 指针、常量和类型别名
+
+//todo jump, P61, pdf(87/864)
+
+
+
+
+
+### auto 类型说明符
+
+程序根据初始值确定类型。一条语句的类型必须一致。
+
+#### 复合类型、常量和auto
+
+auto 一般忽略掉 顶层const。
+
+//todo jump, P62
+
+
+
+### decltype 类型指示符
+
+C++11新标准。
+
+//todo jump, P62
+
+
+
+
+
+
+
+## 2.6 自定义数据结构
+
+### 定义 Sales_data 类型
+
+使用 struct 定义结构体，暂时代替 class(第7章介绍 类)。
+
+```
+//方式1: 定义和实体化一行
+struct Sales_data2 { /**/ } accum2, trans2, *salesptr2;
+
+//方式2: 定义和初始化分开，推荐
+struct Sales_data3 { /**/ };
+Sales_data3 accum3, trans3, *salesptr3;
+```
+
+一个完整例子：
+```
+#include<iostream>
+
+using namespace std;
+
+struct Sales_data{
+    std::string bookNo;
+    unsigned units_sold=0;
+    double price=0.0;
+
+    double revenue=0.0;
+}; //记得分号结尾
+
+int main(){
+    Sales_data data1, data2, *salesPtr;
+    double price=0.0; //书的总价
+
+    cout << "Input ISBN units_sold price" << endl;
+    //1.读数据
+    cin >> data1.bookNo >> data1.units_sold >> data1.price;
+    data1.revenue = data1.units_sold * data1.price;
+    //
+    cin >> data2.bookNo >> data2.units_sold >> data2.price;
+    data2.revenue = data2.units_sold * data2.price;
+
+    //2.判断isbn是否相同
+    if(data1.bookNo == data2.bookNo){
+        //3.如果相同，则求和，输出总本书,总金额,均价。
+        unsigned totalCnt=data1.units_sold+data2.units_sold;
+        double totalRevenue = data1.revenue + data2.revenue;
+        // 输出: isbn, 总销量，中销售额，均价
+        cout << data1.bookNo << "\t" << totalCnt << "\t" << totalRevenue << "\t";
+        if(totalCnt!=0){
+            cout << totalRevenue/totalCnt << endl;
+        }else{
+            cout << "No sales" << endl;
+        }
+        return 0;
+    } else {
+        cerr << "Data must refer to the same ISBN" << endl;
+        return -1;
+    }
+}
+
+$ g++ b8_struct.cpp 
+$ ./a.out 
+Input ISBN units_sold price
+X1 3 20
+X1 4 15
+X1      7       120     17.1429
+```
+
+
+
+### 编写自己的头文件
+
+- 为了一次定义类，其他文件都能用，所以必须使用头文件。
+- 为了一致，Salse_data 类，一般定义在 Sales_data.h 的头文件中。
+- 头文件也经常用到其他头文件的功能，比如 Sales_data.h 包含 string.h 头文件。
+    * 而使用 Sales_data 类的程序，为了操作 bookNo 成员，需要再一次包含 string.h 头文件。
+    * 怎么处理这种多次包含的情况？ 预处理
+
+
+
+#### 预处理器 preprocessor
+
+头文件保护符：
+```
+#ifndef XX_CLASS
+#define XX_CLASS
+
+/*...*/
+
+#endif
+```
+
+- 预处理器无视作用域，它不属于C++语句，编译前完成替换
+- 为了防止重名，保护符的名字使用类名加后缀，一般全大写，确保唯一性。
+- 建议都加上头文件保护符，不管需不需要。
+
+```
+$ cat b9_preprocessor.h
+#ifndef SALES_DATA_H
+#define SALES_DATA_H
+
+#include <string>
+struct Sales_data{
+    std::string bookNo;
+    unsigned units_sold=0;
+    double price=0.0;
+
+    double revenue=0.0;
+}; //记得分号结尾
+
+#endif
+```
+
+
+
+
+
+
+> 2022.7.29
