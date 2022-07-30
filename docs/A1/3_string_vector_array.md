@@ -675,6 +675,12 @@ Please input some words:
 
 ### 其他 vector 操作
 
+empty() 和 size() 方法与 string 相同。后者的返回类型是vector定义的size_type类型，但是也要由元素的类型决定： 
+```
+vector<int>::size_type //正确
+vector::size_type //错误
+```
+
 - v.empty() 返回v是否为空
 - v.size() 返回v中元素个数
 - v.push_back(item)  把元素 item 添加到v的末尾
@@ -685,13 +691,125 @@ Please input some words:
 - <, <=, >, >= //以字典顺序进行比较
 
 
+#### 遍历vector元素 
+- 操作vector中的每个元素，需要用引用: `for(auto &i : v){ i *= i; }`
+- 仅仅打印 `for(auto i : v ){ cout << i << endl;}`
+
+```
+#include<iostream>
+#include<vector>
+using namespace std;
+
+int main(){
+    vector<int> v{1,3,5,7,9};
+    for(auto &i : v) //注意 i 是一个引用。
+        i *= i; // 对每个i的元素求平方
+    
+    for(auto i : v) //遍历每个元素，并打印
+        cout << i << " ";
+    cout << endl;
+
+    return 0;
+}
+
+$ g++ b5_vector_for.cpp 
+$ ./a.out 
+1 9 25 49 81
+```
 
 
 
+#### 计算 vector 内对象的索引
+
+- 和 string 一样，下标从0开始，可以使用下标取对象。
+- 一般也能像下标运算符返回的元素赋值，如果不是常量。
+- 下标的类型是对应的 size_type 类型。
+
+
+例: 统计学生成绩在0-100之间落到每10分的区间的个数，比如0-9, 10-19, ..., 100 共11个区间（最后一个区间就只有100一个取值）。 
+
+```
+#include<iostream>
+#include<vector>
+using namespace std;
+
+int main(){
+    vector<unsigned> scores(11, 0); //11个段位，全部初始化为0
+    unsigned grade; //得分
+    cout << "Please input some scores from 0 to 100:" << endl;
+    while(cin >> grade)
+        if(grade <= 100)
+            ++scores[grade/10];
+    // output result
+    for(int i=0; i<scores.size(); i++)
+        cout << scores[i] << "  ";
+    cout << endl;
+    return 0;
+}
+
+$ g++ b6_vector_StuScore.cpp
+$ ./a.out # 回车，然后 ctrl+D
+Please input some scores from 0 to 100:
+42 65 95 100 39 67 95 76 88 76 83 92 76 93
+0  0  0  1  1  0  2  3  2  4  1 
+```
 
 
 
+#### 不能用下标添加元素
 
+```
+$ cat b7_vector_add.cpp
+#include<iostream>
+#include<vector>
+using namespace std;
+
+int main(){
+    vector<int> iVec; //声明空vector
+    //iVec[0]=12; //编译通过，运行时 Segmentation fault (core dumped)
+
+    //正确的做法是使用 push_back() 方法添加
+    iVec.push_back(12);
+
+    return 0;
+}
+```
+
+> vector 对象 （以及 string 对象）的下标运算符可以访问已存在的元素，不能用于添加元素。
+
+> 即使是访问，也要确保有这个元素，用下标访问一个不存在的元素，会导致一个运行时错误。怎么避免？就是尽可能使用 `范围for语句`。
+
+
+习题：初始化10个元素，值都是42，给出3种实现，哪种最好？
+```
+#include<iostream>
+#include<vector>
+using namespace std;
+
+int main(){
+    //方法1: 最好
+    vector<int> ivec1(10, 42);
+
+    //方法2
+    vector<int> ivec2{42,42,42,42,42,42,42,42,42,42};
+
+    //方法3
+    vector<int> ivec3(10);
+    for(int &i : ivec3)
+        i=42;
+    
+    //输出检查
+    for(int i: ivec1)
+        cout << i << " ";
+    cout << endl;
+    
+    return 0;
+}
+
+$ g++ b8_vector_init_methods.cpp  #需要修改最后一个for，反复输出这三个vector
+$ ./a.out 
+42 42 42 42 42 42 42 42 42 42
+```
 
 
 
@@ -705,6 +823,241 @@ Please input some words:
 
 ## 3.4 迭代器介绍
 
+- 访问string 或者 vector 的元素的方法，除了下标，还有 迭代器(iterator)。
+- 标注库中，包含 vector 等几个容器，都支持迭代器，但是只有少量几种才支持下标运算符。
+- string 不属于容器，但是它支持很多与容器类似的操作，比如下标运算符、迭代器。
+
+类似指针类型，迭代器也提供了对对象的间接访问。
+
+
+### 使用迭代器
+
+```
+// 由编译器决定b和e的类型
+// b表示v的第一个元素，e表示v尾元素的下一个位置
+auto b=v.begin(), e=v.end(); //b和e的类型相同
+```
+
+- end() 返回的是一个指向尾元素的下一个位置的迭代器。
+- 如果容器为空，则begin() 也返回指向尾后下一个位置的迭代器，和 end()返回的是同一个迭代器。
+
+```
+#include<iostream>
+#include<vector>
+using namespace std;
+
+int main(){
+    vector<int> iVec(5, 0); //5个元素，值都是0(可省略)
+    for(int i=0; i<iVec.size(); i++)
+        iVec[i]=i; //赋值 [0, 4]
+
+    //b表示第一个元素，e表示最后一个元素
+    auto b=iVec.begin(), e=iVec.end(); //类型由编译器确定
+
+    cout << *b << endl; // *iter 返回迭代器所指元素的引用
+    cout << *(--e) << endl; //尾元素的下一个位置，往上移1，就是最后一个元素
+    return 0;
+}
+
+$ g++ b9_iterator_1.cpp 
+$ ./a.out 
+0
+4
+```
+
+
+
+
+#### 迭代器运算符
+
+- 如果2个迭代器指向相同的元素，或者都是同一个容器的尾后迭代器，则它们相等，否则不等。
+
+- *iter 返回迭代器 iter 所指元素的引用
+- iter->mem 解引用iter并获取该元素的名为 mem 的成员，等价于 (*iter).mem
+- ++iter 令 iter 指示容器的下一个元素
+- --iter 令 iter 指示容器的上一个元素
+- iter1 == iter2 判断两个迭代器是否相等：如果指向同一个元素或者它们是同一个容器的尾后迭代器，则相等，否则不等。
+- iter1 != iter2
+
+例: 字符串首字母大写
+```
+#include<iostream>
+#include<string>
+using namespace std;
+
+int main(){
+    string s2("hello c++");
+    cout << "&s2=" << &s2 << endl;
+    char &ref=s2[0];
+    //cout << "s2[0]=" << s2[0] << ", &(s2[0])=" << &(s2[0]) << endl;
+    cout << "s2[0]=" << s2[0] << ", ref=" << ref << ", &ref=" << &ref << endl;
+    if( s2.begin() != s2.end()){ //确保非空
+        auto it = s2.begin(); //it 指向s2的第一个首字母
+        *it = toupper(*it);
+        cout << "&it=" << &it << ", *it=" << *it << endl;
+    }
+    // 输出结果
+    cout << s2 << endl;
+    return 0;
+}
+
+// 字符串首字符的地址，和指向第一个字符迭代器不一样，正好差了16
+
+$ g++ b10_iterator_captal.cpp 
+$ ./a.out 
+&s2=0x7ffce804cc70
+s2[0]=h, ref=h, &ref=hello c++
+&it=0x7ffce804cc60, *it=H
+Hello c++
+```
+
+
+
+#### 将迭代器从一个元素移动到另一个元素
+
+- end() 返回值不是指向一个元素，所以不能解引用。但是可以做 递减 操作。
+- begin() 返回值可以解引用，或递增、递减操作。
+
+例: 使用for循环和迭代器遍历字符串
+```
+#include<iostream>
+using namespace std;
+
+//第一个单词大写
+int main(){
+    string s2="hello world!";
+    for(auto it=s2.begin();  it != s2.end() && !isspace(*it);  ++it){
+        *it = toupper(*it);
+    }
+    //输出
+    cout << s2 << endl;
+    return 0;
+}
+
+$ g++ b11_iter_for.cpp 
+$ ./a.out 
+HELLO world!
+```
+
+> 注意：上文for循环使用了 `!=`, 这是因为C++标准库提供的所有容器都提供了迭代器风格，但是只有个别提供了下标访问符。
+
+
+
+
+#### 迭代器类型
+
+一般来说，我们无需知道迭代器的精确类型。
+
+- 拥有迭代器的标准库类型使用 iterator 和 const_iterator 来表示迭代器类型。
+- const_iterator 和常量指针差不多，只能读取。
+  * 如果 string 或 vector 是常量，则只能使用 const_iterator；
+  * 如果 string 或 vector 不是常量，则使用哪个类型迭代器都可以。
+
+
+```
+vector<int>::iterator it; // it 能读写 vector<int> 的元素
+string::iterator it2; //it2 能读写 string 对象中的字符
+
+vector<int>::const_iterator it3; //it3 只能读元素，不能写元素
+string::const_iterator it4; //it4 只能读字符，不能写字符
+```
+
+迭代器 这个名词的三个含义:
+- 迭代器概念本身
+- 容器定义的迭代器类型
+- 某个迭代器对象
+
+重要的是概念，迭代器能支持一套操作，让我们从一个元素移动到另一个元素。容器定义一个 iterator 类型，该类型支持迭代器概念所规定的的一套操作。
+
+
+
+#### begin 和 end 运算符
+
+```
+vector<int> v;
+const vector<int> cv;
+
+auto it1=v.begin(); //it1 的类型是 vector<int>::iterator
+auto it2=cv.begin(); //it2 的类型是 vector<int>::const_iterator
+```
+
+如果只读，特意需要 const_iterator怎么办？C++11提供了 cbegin 和 cend 新函数。
+
+```
+auto it3 = v.cbegin(); //it3 的类型是 vector<int>::const_iterator
+```
+
+
+
+#### 结合 解引用 和 成员访问操作
+
+- 检查当前迭代器指示的元素是否为空：`(*it).empty()`, 其中的圆括号是必须的。
+- 为了简化，C++11 定义了 `箭头运算符(->)` ，结合了解引用和成员访问。`it->mem` 等价于 `(*it).mem`
+
+
+//todo debug, P98, pdf124/864  报错, 不懂。懂了。
+```
+#include<iostream>
+#include<string>
+using namespace std;
+
+int main(){
+    string text="this is a book.";
+    //使用迭代器遍历读，直到遇到空格停止
+    for(auto it=text.cbegin();
+        //it != text.cend() && !it->empty(); 
+        it != text.cend() && (*it).empty(); 
+        ++it){
+        cout << *it << endl;
+    }
+
+    return 0;
+}
+
+$ g++ b12_iter_cbegin.cpp
+编译报错，代码和书上一样。
+error: request for member ‘empty’ in ‘it.__gnu_cxx::__normal_iterator<const char*, std::__cxx11::basic_string<char> >::operator*()’, which is of non-class type ‘const cha’
+   10 |         it != text.cend() && (*it).empty();
+```
+
+
+修正版: 每个字符串结尾换行
+```
+// fix: char 没有 empty 方法。需要把 text 改为 vector<string> 类型
+    vector<string> text={"this is a book.", "hello, c++"};
+
+$ g++ b12_iter_cbegin2.cpp 
+$ ./a.out 
+this is a book.
+hello, c++
+
+```
+
+注意：操作的是 字符串，还是  字符串向量。
+
+修正版2: 每个字符后面空格
+```
+    string text="this is a book.";
+    // v3: 基于 range-for 的迭代输出
+    //遍历，直到遇到空格停止
+    for(auto i : text){
+        if(i == ' ')
+            break;
+        cout << i << " ";
+    }
+    cout << endl;
+
+$ g++ b12_iter_cbegin3.cpp 
+$ ./a.out 
+t h i s
+```
+
+
+#### 某些对vector 的操作会使迭代器失效
+
+> for 循环中不能向 vector 对象中添加元素。
+
+> 但凡使用迭代器的循环体，都不要向迭代器所在的容器添加元素。
 
 
 
@@ -712,23 +1065,84 @@ Please input some words:
 
 
 
+### 迭代器运算
+
+- 迭代器递增、递减每次移动一个元素。
+- 可以使用 == 或 != 比较两个迭代器。
+
+string 和 vector 提供更多 迭代器运算：一次移动跨多个元素、迭代器的关系运算。
+
+- iter+n //迭代器向后移动n个位置，结果还是迭代器。
+- iter-n //迭代器向前移动n个位置，结果还是迭代器。
+- iter1 += n // 迭代器加法，把 iter1+n 的结果赋值给 iter1
+- iter1 -= n // 迭代器加法，把 iter1-n 的结果赋值给 iter1
+- iter1 - iter2 //两个迭代器之间的距离，两个迭代器必须指向同一个容器中的元素或者其末尾
+- >, >=, <, <= //迭代器关系运算符。两个迭代器必须指向同一个容器中的元素或者其末尾
 
 
+#### 迭代器的算术运算
+
+比如，v1 有20个元素， v1.size()/2 是10，也就是 mid=v1.begin()+10, 下标从0开始，也就是元素 v1[10]。
+
+```
+// 获取v1中间元素的迭代器
+auto mid=v1.begin() + v1.size()/2;
+
+//比较两个迭代器的前后关系
+if(v1 < mid)
+    // 处理 v1 前半部分的元素
+```
+
+迭代器相减，得到的类型是 difference_type 的带符号整数，有位有正有负。
 
 
+#### 使用迭代器运算
+
+迭代器二分搜索。
+
+```
+#include<iostream>
+#include<vector>
+using namespace std;
+
+int main(){
+    vector<int> ivec={-20,0,8,10,20,50};
+    auto begin=ivec.begin(), end=ivec.end();
+    auto mid=begin + ivec.size()/2; //中间点
+
+    int value = 15;
+    cout << "Please input a value you want to find: [" << 
+            ivec[0] << ", " << ivec[ivec.size()-1] << "]" << endl;
+    cin >> value;
+
+    // 当还没有到达终点，且还没有找到目标值时，循环
+    while (mid != end && *mid!=value){
+        cout << ">> value of begin, mid, end:" << *begin << ", " << *mid << ", " << *end << endl;
+        if(value < *mid){
+            end=mid; //为什么不需要+1
+        }else{
+            begin=mid+1; //为什么需要加1？
+        }
+        mid = begin + (end-begin)/2; //新的中点
+    }
+    //如果 mid==end 说明没有找到我们需要的值
+    if(mid == end){
+        cout << "not found" << endl;
+    }else{
+        cout << *mid << endl;
+    }
+
+    return 0;
+}
 
 
-
-
-
-
-
-
-
-
-
-
-
+$ g++ b13_iter_binarySearch.cpp 
+$ ./a.out 
+Please input a value you want to find: [-20, 50]
+50
+>> value of begin, mid, end:-20, 10, 1041
+50
+```
 
 
 
@@ -741,8 +1155,83 @@ Please input some words:
 
 ## 3.5 数组
 
+数组和vector类似，但是大小不能变。
+
+### 定义和初始化内置数组
+
+- 数组的长度必须是已知的，也就是常量表达式。
+- 数组的类型必须指定，不允许使用auto关键字让初始值去推断。
+- 和vector一样，数组的元素必须是对象，因此不存在引用的数组。
 
 
+```
+#include<iostream>
+using namespace std;
+
+int arr0[10]; //含有10个元素的数组
+//函数内的内置类型的数组，初始化时含有未定义的值。比如 arr
+
+int main(){
+    //数组的初始化
+    int arr[10]; //含有10个元素的数组
+
+    unsigned cnt=20; //不是常量表达式
+    constexpr unsigned sz=25; // 常量表达式
+    int *parr[sz]; //含有25个整型指针的数组
+
+    string bad[cnt]; //报错：cnt不是常量表达式。 为啥我测试没报错呢？
+    cout << "|" << bad[0] << "| length=" << bad->length()  << endl;
+    cout << "|" << arr0[0] << "| outsize function, do default init " << endl;
+    cout << "|" << arr[0] << "| inside function, not do default init" << endl;
+
+    //string strs[get_size()]; //当 get_size 是 constexpr 时正确，否则错误。
+
+    return 0;
+}
+
+
+$ g++ c1_array_init.cpp 
+$ ./a.out 
+|| length=0
+|0| outsize function, do default init 
+|-1031921592| inside function, not do default init
+```
+
+> 新编译器是支持变长数组的，不过很多书不建议使用变长数组。
+
+
+现在C++支持变长数组，不过当使用 sizeof() 时，还是按照初始化的长度。
+```
+#include<iostream>
+using namespace std;
+
+int main(){
+    int len=5;
+    int arr[len];
+
+    len=9;
+    for(int i=0; i<len; i++)
+       cout << i <<", addr=" << &(arr[i])  << "\t" << arr[i] << endl;
+    
+    cout << "size of arr:" << sizeof(arr) << endl;
+    cout << "element number:" << sizeof(arr)/sizeof(int) << endl;
+    return 0;
+}
+
+$ g++ c2_array_init.cpp 
+$ ./a.out 
+0, addr=0x7ffdc10861b0  -1056415296
+1, addr=0x7ffdc10861b4  32765
+2, addr=0x7ffdc10861b8  -951614267
+3, addr=0x7ffdc10861bc  21892
+4, addr=0x7ffdc10861c0  2
+5, addr=0x7ffdc10861c4  0
+6, addr=0x7ffdc10861c8  -951614179
+7, addr=0x7ffdc10861cc  21892
+8, addr=0x7ffdc10861d0  8
+size of arr:20
+element number:5
+```
 
 
 

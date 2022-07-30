@@ -30,3 +30,25 @@ int main(){
 
 
 
+
+
+## OS 系统交互
+
+
+运行系统命令 `ls`。
+```
+#include<iostream>
+using namespace std;
+
+int main(){
+    cout << system("ls") << endl;;
+    return 0;
+}
+
+$ g++ b4_system.cpp 
+A1/3$ ./a.out | head
+a10_string_index.cpp
+a11_decimal_to_hex.cpp
+a1_using.cpp
+a2_string_init.cpp
+```

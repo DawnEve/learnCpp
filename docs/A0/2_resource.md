@@ -24,6 +24,13 @@
 - [C++ Primer 5 answers](https://github.com/Mooophy/Cpp-Primer): C++ primer 5th 习题解答
 
 
+## ref docs
+- [gcc](https://gcc.gnu.org/): 官网
+- [GNU libstdc++](https://gcc.gnu.org/onlinedocs/libstdc++/index.html): C++ 标准库
+- [GNU libstdc++](https://gcc.gnu.org/onlinedocs/gcc-4.6.2/libstdc++/api/a00259.html): gcc-4.6.2/libstdc++/api/a00259.html
+- [MS cpp standard-library](https://docs.microsoft.com/en-us/cpp/standard-library/iterators?view=msvc-170)
+- [cplusplus.com](https://m.cplusplus.com/reference/iterator/)
+
 
 
 ## Project
