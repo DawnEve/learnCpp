@@ -1,6 +1,7 @@
 #include<iostream>
 using namespace std;
 
+// 数组长度是变量也可以，不提倡。
 int main(){
     int len=5;
     int arr[len];

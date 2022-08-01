@@ -20,16 +20,7 @@
 ## Project Info
 - Github repo: `https://github.com/DawnEve/learnCpp`
 - File location: Y station `/home/wangjl/data/project/learnCpp` 
-
-
-
-## Logs
-
-### Part I
-  * 2022.7.26 1-P68/864
-  * 2022.7.28 P82/864
-  * 2022.7.29 P118/864
-  * 2022.7.30 P127/864
+- How to view: start an static server in docs/ is enough "cd docs/ && python3 -m http.server 8004"
 
 
 
@@ -41,5 +32,15 @@
 - 报错，未知原因: //todo debug
     * 一般是代码和书上一样，就是报错
 
+
+
+## Logs
+
+### Part I
+  * 2022.7.26 1-P68/864
+  * 2022.7.28 P82/864
+  * 2022.7.29 P118/864
+  * 2022.7.30 P127/864
+  * 2022.8.1 P138/864
 
 

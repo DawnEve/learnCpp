@@ -7,3 +7,4 @@ v0.6 to P112/864, vector
 v0.6.1 fix links
 v0.6.2 add vector
 v0.6.3 add string, array
+v0.6.4 add array

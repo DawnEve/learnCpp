@@ -1234,6 +1234,225 @@ element number:5
 ```
 
 
+#### 显式初始化数组元素
+
+```
+#include<iostream>
+using namespace std;
+
+// 显式初始化数组
+int main(){
+    // 1.指定长度，并使用列表初始化
+    const unsigned sz=3;
+    int arr1[sz]={0,1,2}; // 含有3个元素的数组，分别是0,1,2
+    
+    // 2.给出数组元素，编译器根据初始值推断维度
+    int arr2[]={0,1,2,3}; //维度是4的数组
+
+    //例外1. 如果维度大，初始值个数少，则其余的默认值
+    int arr3[5]={0,1,2}; //等价于 arr3[]={0,1,2,0,0}
+    string arr4[3]={"this", "is"}; //等价于 arr4[]={"this", "is", ""}
+
+    //错误: 初始值个数 大于维度则报错
+    //int arr5[2]={0,1,2}; // error: too many initializers for ‘int [2]’
+
+    cout << "size of arr2=" << sizeof(arr2)/sizeof(int) << endl;
+    for(int i=0; i<sizeof(arr3)/sizeof(int); i++)
+        cout << "arr3[" << i << "]=" << arr3[i] << endl;
+    
+    return 0;
+}
+
+$ g++ c3_array_init_explicit.cpp 
+$ ./a.out 
+size of arr2=4
+arr3[0]=0
+arr3[1]=1
+arr3[2]=2
+arr3[3]=0
+arr3[4]=0
+```
+
+
+
+#### 字符数组的特殊性
+
+> 字符数组，还可以采用字符串字面值进行初始化。注意字符串结尾的空字符'\0'也会被拷贝到字符串数组中。
+
+```
+#include<iostream>
+using namespace std;
+
+int main(){
+    //字符串数组的 字面量初始化，字符串字面量结尾的空字符，也会被拷贝到数组中
+    char a1[]={'c', '+', '+'}; //列表初始化，无空字符
+    char a2[]={'c', '+', '+', '\0'}; //列表初始化，有空字符
+
+    char a3[]="C++"; //自动添加字符串结尾的空字符，长度为4
+
+    //const char a4[3]="C++"; //错误，没空间存放最后的空字符
+    // error: initializer-string for array of chars is too long [-fpermissive]
+
+    cout << "size of a3=" << sizeof(a3)/sizeof(char) << endl;
+
+
+    return 0;
+}
+
+
+$ g++ c4_charArray_init.cpp 
+$ ./a.out 
+size of a3=4
+```
+
+
+
+#### 不允许拷贝和赋值
+
+不能将数组的内容拷贝个其他数组作为初始值，也不能用数组为其他数组赋值(有些编译器支持数组赋值，不过这是非标准实现，不建议使用)。
+
+```
+#include<iostream>
+using namespace std;
+
+//数组初始化，不能拷贝。
+// 不能用数组为其他数组赋值。
+int main(){
+    int a1[]={0,1,2};
+    //int a2[]=a1; //error: initializer fails to determine size of ‘a2’
+    
+    int a2[3];
+    a2=a1; //error: invalid array assignment
+
+    return 0;
+}
+```
+
+
+
+#### 理解复杂的数组声明
+
+- 定义存放指针的数组，简单、直接。
+- 定义数组的指针或数组的引用，稍微麻烦。
+
+> 数组的声明，最好是按照结合顺序，从内向外的理解其含义。
+
+```
+#include<iostream>
+using namespace std;
+
+//数组的指针，数组的引用
+int main(){
+
+    int *ptrs[10]; //ptrs 是含有10个整型指针的数组
+    //从右向左读：10个元素的数组，名字 ptrs，保存的是指针，指向的是int
+
+    int arr[10]={0,1,2};
+    //int &refs[10]=arr; //error: declaration of ‘refs as array of references
+
+    int (*pArr2)[10] = &arr; //pArray 指向一个含有10个整数的数组
+    // 由内向外读更好理解，按结合性顺序： 
+    //    *pArr 是一个指针； 
+    //    接着看右边，指向一个长度为10的数组的指针；
+    //    最后观察左侧，它指向int数组；
+    int (&refArr3)[10] = arr; //refArr 引用一个含有10个整数的数组
+    // 同上
+    // &refArr 是一个引用
+    // 看右侧，引用对象是一个长度10的数组
+    // 看左侧，数组中元素是int
+
+    cout << "&arr  =  " << &arr << endl;
+    cout << "pArr2  = " << pArr2 << endl;
+    cout << "refArr3= " << refArr3 << endl;
+
+    // 更复杂的用法
+    int *(&arr4)[10] = ptrs; //arr4 是数组的引用，该数组含有10个指针
+    // 由内向外，
+    //    圆括号内 &arr4 是一个引用，
+    //    看右侧，引用的是一个长度10的数组
+    //    看左侧，数组的元素是指向 int 的指针
+
+    return 0;
+}
+
+$ g++ c6_array_ptr_ref.cpp 
+$ ./a.out 
+&arr  =  0x7ffdec74e070
+pArr2  = 0x7ffdec74e070
+refArr3= 0x7ffdec74e070
+```
+
+
+
+
+
+
+
+
+
+### 访问数组元素
+
+- 与标准库类型 vector 和 string 一样，数组元素也能范围 for 语句或下标运算符访问。下标起始是0。
+- 下标类型通常定义为 size_t 类型，机器相关的 无符号类型，足够大，定义在 `cstddef` 头文件中。对应c语言的 `csddef.h` 头文件。
+- 数组大小固定，其他用法和 vector 基本类似。最好的遍历是范围for: `for (auto i : scores)`
+- 程序员保证下标不越界。下标要大于等于0，小于数组大小。否则会发生运行时错误。
+
+
+```
+#include<iostream>
+using namespace std;
+
+// 使用数组做分段统计: 0-100 每10分一个段，共11个段，最后一个段只有100一个分数
+int main(){
+    unsigned scores[11]={}; //存放11个段位统计数
+    unsigned grade;
+    cout << "Please input some numbers [0,100]: " << endl;
+    while (cin >> grade){
+        if(grade<=100){
+            ++ scores[grade/10];
+        }
+    }
+    // output
+    for(auto i : scores){
+        cout << i << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
+
+$ g++ c7_array_cut_count.cpp 
+$ ./a.out #enter, ctrl+D
+Please input some numbers [0,100]: 
+0 100 20 95
+1 0 1 0 0 0 0 0 0 1 1 
+```
+
+ 例2：访问合法区域，则不报错。
+ ```
+ #include<iostream>
+using namespace std;
+
+//程序员保证数组下标不越界，否则运行时错误
+int main(){
+    int arr[3]={10,2,3};
+    for(auto i : arr)
+        cout << i << " ";
+    cout << endl;
+    // 越界的也不报错 ??
+    cout << "arr[5]   =" << arr[5] << endl; //越界，访问 合法区域，不报错，只是值不确定。
+    cout << "arr[5000]=" <<arr[5000] << endl; //越界，并访问非法内存区域时，才报错
+    //Segmentation fault (core dumped)
+    return 0;
+}
+
+
+$ g++ c8_array_index_outOf.cpp 
+$ ./a.out 
+10 2 3 
+arr[5]   =0
+Segmentation fault (core dumped)
+```
 
 
 
@@ -1244,8 +1463,420 @@ element number:5
 
 
 
+### 指针和数组
+
+- 数组和指针关系密切，使用数组时，编译器会把它转为指针。
+- 数组名就是指向其第一个元素的指针： `string *p2=arr; //等价于 p2=&arr[0];`
+
+例1：当数组是一个auto变量的初始值时，推断得到的类型是指针而不是数组。
+```
+#include<iostream>
+using namespace std;
+
+//数组作为auto变量的初始值，推断其为指针，而不是数组
+int main(){
+    int  arr[3]={10, 11, 12};
+    auto arr2(arr); //arr 是一个数组，作为auto 类型arr2的初始值时
+    //arr2=4; //error: invalid conversion from ‘int’ to ‘int*’ [-fpermis]ive
+    
+    //arr=4; //error: incompatible types in assignment of ‘int’ to ‘int [3]’
+
+    cout << arr2 << endl;
+    cout << *arr2 << endl;
+    cout << *(arr2+1) << endl; //可以递增，获取下一个元素，因为数组在内存区是连续的
+
+    return 0;
+}
+
+$ g++ c9_arr_as_refInit.cpp 
+$ ./a.out 
+0x7ffc2825b59c
+10
+11
+```
+
+> 上述过程 `auto arr2(arr);` 的实际初始化过程类似于 `auto arr2(&arr[0]);` 显然arr2的类型是 int *;
+
+> 使用 decltype(arr) arr3; //返回的是由10个整数构成的数组。
 
 
+
+#### 指针也是迭代器
+
+- 指针支持递增、递减。 
+
+```
+int arr[]={0,1,2};
+int *p=arr; //p指向arr的第一个元素
+++p;  //p指向arr[1]
+```
+
+
+- 要使用迭代器循环，就要获取尾后迭代器，获取的方式 `int arr[10]; int *end=&arr[10];` 最后一个不存在的元素的唯一作用，就是初始化其尾后迭代器。
+
+> 尾后指针/迭代器：不能解引用，不能递增。
+
+
+```
+#include<iostream>
+using namespace std;
+
+//使用迭代器遍历数组
+int main(){
+    int arr[3]={10, 11, 12};
+    // 尾后迭代器，就是最后一个不存在的元素的地址
+    int *end=&arr[ sizeof(arr)/sizeof(int) ];
+    for(int *be=arr; be != end; ++be){
+        cout << *be << endl;
+    }
+    return 0;
+}
+
+$ g++ c10_arr_iter_end.cpp 
+$ ./a.out 
+10
+11
+12
+```
+
+#### 标准库函数 begin 和 end
+
+尾后指针容易出错，怎么办？C++11引入了 begin 和 end 函数，获取其位置。该2函数返回值是指针。
+
+```
+#include<iostream>
+using namespace std;
+
+//使用迭代器遍历数组： begin end
+int main(){
+    int arr[3]={10, 11, 12};
+    // C++11 新引入的函数 begin 和 end，返回的指针：首位置和尾后
+    int *beg=begin(arr);
+    int *last=end(arr); //变量名不能和函数名同名(这里使用 last)，否则报错 ‘end’ cannot be used as a function
+
+    int i=0;
+    for(; beg != last; ++beg){
+        cout << *beg;
+        cout << "\t" << beg << " " << &arr[i] << " " << arr[i] << endl;
+        i++;
+    }
+    return 0;
+}
+
+$ g++ -std=c++11 c10_arr_iter_end2.cpp 
+$ ./a.out 
+10      0x7ffd5767598c 0x7ffd5767598c 10
+11      0x7ffd57675990 0x7ffd57675990 11
+12      0x7ffd57675994 0x7ffd57675994 12
+```
+
+
+#### 指针运算
+
+- 指向数组元素的指针，可以执行迭代器的所有运算：解引用、递增、比较、与整数加减、两指针的相减，意义也一致。
+
+```
+#include<iostream>
+using namespace std;
+
+//指向数组元素的指针，加减整数，表示指针前后移动
+int main(){
+    int arr[10]={0,1,2,3,4,5,6,7,8,9};
+    int *p1=arr; //指向第1个元素 arr[0]
+    int *p2=p1+4; //指向第5个元素 arr[4]
+
+    cout << *p1 << " " << arr[0] << endl;
+    cout << *p2 << " " << arr[4] << endl;
+
+    cout << p2-p1 << endl;
+    return 0;
+}
+
+$ g++ c11_arr_ptr_add.cpp 
+$ ./a.out 
+0 0
+4 4
+4
+```
+
+
+#### 解引用和指针运算的交互
+
+- `int last=*(begin + 4)` 和 `int last=*begin +4` 是不同的，前者是指针移动4位后的元素值，后者是首元素的值加上数字4.
+
+
+#### 下标和指针
+
+- 数组名就是指向数组第一个元素的指针。
+- 只要是指向数组元素的指针，都可以和数组名一样使用下标运算。
+    * 只是要注意，下标0是当前指针位置，往前则下标为负数。
+
+> 内置的下标运算符所用的索引值不是无符号类型，这个和 vector 和 string 不同。
+
+```
+#include<iostream>
+using namespace std;
+
+//指向数组元素的指针，可以使用下标运算符。
+int main(){
+    int arr[]={0,1,2,3,4,5};
+    int *p1=arr;
+    int *p2=p1+2;
+
+    cout << "arr[1]=" << arr[1] << endl;
+    cout << "p1[1]=" << p1[1] << endl;
+    cout << "p2[1]=" << p2[1] << endl;
+    cout << "p2[0]=" << p2[0] << ", *p2=" << *p2 << endl;
+    cout << "p2[-1]=" << p2[-1] << endl; //下标可以为负
+
+    return 0;
+}
+
+$ g++ c12_arr_ptr_index.cpp 
+$ ./a.out 
+arr[1]=1
+p1[1]=1
+p2[1]=3
+p2[0]=2, *p2=2
+p2[-1]=1
+```
+
+
+
+
+
+
+
+
+### C风格字符串
+
+> 不建议使用 C风格的字符串，容易导致程序漏洞。
+
+- 字符串字面值，最后是一个空字符'\0'，一般利用指针操作这些字符串。
+- 头文件 `cstring`, 对应C语言的 `string.h`
+
+提供了几个函数:
+- strlen(p) 返回p的长度，空字符不计算在内。
+- strcmp(p1, p2) 比较p1和p2的大小。相等返回0；p1>p2，返回+1；p1 < p2返回-1；
+- strcat(p1, p2) 将p2附件到p1的后面，返回p1
+- strcpy(p1, p2) 将p2拷贝给p1，返回p1
+
+
+```
+#include<iostream>
+#include<cstring>
+using namespace std;
+
+//C 风格的字符串操作
+int main(){
+    char str1[]={'C', '+', '+'}; //不以空字符结尾
+    char str2[]={'C', '+', '+', '\0'}; //以空字符结尾
+
+    cout << strlen(str1) << endl; //返回的长度不对，也可能是一直读取到\0结束
+    cout << strlen(str2) << endl; 
+
+    return 0;
+}
+
+
+$ g++ c13_C_string_strlen.cpp 
+$ ./a.out 
+6
+3
+```
+
+
+#### 比较字符串
+
+- 比较标准库 string 对象，用的是普通关系运算符和相等运算符。
+- 比较 C 风格字符串，则要使用 strcmp() 函数。
+
+
+```
+#include<iostream>
+#include<cstring>
+using namespace std;
+
+// 字符串的比较
+int main(){
+    //1.标准库 string 类型比较
+    string s1="a small dog;";
+    string s2="a small cat;";
+
+    if(s1 > s2)
+        cout << s1 << " is > " << s2 << endl;
+    
+    //2. C 风格字面量的比较
+    const char c1[]="A big dog;";
+    const char c2[]="A big cat;";
+
+    //(1) 
+    if(c1 > c2) //实际比较的是2个指针，而非字符串本身
+        cout << c1 << " is > " << c2 << endl;
+    else
+        cout << " c1> c2, else" << endl;
+
+    //(2)相比较C风格的字符串，需要用 strcmp 函数
+    if( strcmp(c1, c2)>0 ){
+        cout << c1 << " is > " << c2 << endl;
+    }
+
+    return 0;
+}
+
+$ g++ c14_string_cmp.cpp 
+$ ./a.out 
+a small dog; is > a small cat;
+ c1> c2, else
+A big dog; is > A big cat;
+```
+
+
+#### 目标字符串的大小由调用者指定
+
+- 连接2个字符串，如果是 string 对象，则直接用+号
+- 如果是 C风格的字符串，则需要使用 strcat(p1, p2)，把p2复制到p1的结尾，还要保证p1足够大。
+
+```
+#include<iostream>
+#include<cstring>
+using namespace std;
+
+// 字符串的连接
+int main(){
+    // 2个 string 对象的连接
+    string s1="hello";
+    string s2="world";
+    string s3=s1+" "+ s2;
+    cout << s3 << endl;
+
+    // 2个 C 风格的字符串的连接
+    char c1[]="hello";
+    char c2[]="world";
+
+    //要先声明一个大数组, 貌似估算错了也没有影响
+    //char c3[500];
+    char c3[5];
+    strcpy(c3, c1);
+    strcat(c3, " ");
+    strcat(c3, c2);
+    //cout << c3 << endl;
+    char *p=c3;
+    while(*p != '\0'){
+        putchar(*p);
+        p++;
+    }
+    putchar('\n');
+
+    return 0;
+}
+
+$ g++ c15_string_cat.cpp 
+$ ./a.out 
+hello world
+hello world
+```
+
+
+
+
+### 与旧代码的接口
+
+#### 混用 string 对象和 C风格字符串
+
+- 任何出现字符串字面量的地方，都可以使用以空字符'\0'结束的字符数组代替。
+    * 允许使用'\0'字符数组来给string对象初始化或赋值
+    * string 加法允许其中一个是'\0'结束的字符数组，不能2个都是。
+- 反之不成立：程序需要C风格字符串，无法直接使用 string 对象代替。可以使用string的 `const char *s2 = s1.c_str()` 方法。
+    * 执行完 c_str() 获取的字符串，如果原始 s1 改变了，则 返回的 s2 也跟着变。
+
+
+```
+#include<iostream>
+using namespace std;
+
+// string 对象给 C风格字符串赋值
+int main(){
+    string s1="hello, world!";
+
+    //char *s2=s1;
+    // error: cannot convert ‘std::string’ {aka ‘std::__cxx11::basic_string<char>’} to ‘c in initialization
+
+    //char *s3=s1.c_str(); //error: invalid conversion from ‘const char*’ to ‘char*’ [-fpermissive]
+
+    const char *s4=s1.c_str(); //一个指针，指向char的指针，指向的元素不能变更
+    //s4[0] ='H'; //error: assignment of read-only location ‘* s4’
+    
+    //首字母大写
+    s1[0]='H'; 
+    cout << s4[0] << endl;
+    cout << s4 << endl;
+
+    // 指向第二个元素
+    s4=&s1[1];
+    cout << s4 << endl;
+
+    // 如果改变了原始 string 字符串
+    s1="ni hao";
+    cout << s4 << endl;
+
+    return 0;
+}
+
+
+$ g++ c16_string_c_str.cpp 
+$ ./a.out 
+H
+Hello, world!
+ello, world!
+i hao
+```
+
+
+
+#### 使用数组初始化 vector 对象
+
+- 可以使用数组为vector 对象初始化。只需要拷贝区域的 首元素地址 和 尾后地址 即可。
+
+```
+#include<iostream>
+#include<vector>
+using namespace std;
+
+//使用数组初始化 vector
+int main(){
+    int arr[]={0,1,2,3,4,5};
+
+    //2个初始化 vector，分别是数组的头指针和尾后指针
+    vector<int> ivec(begin(arr), end(arr));
+    
+    //遍历1
+    for(auto i : ivec)
+        cout << i << " ";
+    cout << endl;
+
+    // 使用其他指针初始化 vector: arr[1], arr[4]
+    vector<int> ivec2( &arr[1], arr+4);
+
+    //遍历2
+    for(int i=0; i<ivec2.size(); i++)
+        cout << ivec2[i] << " ";
+    cout << endl;
+
+    return 0;
+}
+
+$ g++ c17_arr_init_vector.cpp 
+$ ./a.out 
+0 1 2 3 4 5 
+1 2 3
+```
+
+> 建议：尽量使用标准库类型，而非数组。
+
+- 指针和数组容易出错，概念和声明都易错。
+- 现代c++程序应尽量用vector 和迭代器，避免使用内置数组和指针。
+- 应该尽量使用 string，避免使用 C 风格的基于数组的字符串。
 
 
 
@@ -1266,6 +1897,7 @@ element number:5
 
 ## 3.6 多维数组
 
+- c++中的多维数组，就是数组的数组。
 
 
 
