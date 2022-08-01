@@ -31,4 +31,5 @@
 
 * Appendix
     * [vscode 技巧](Z1/1_vscode.md)
+    * [Reading Logs](Z1/2_reading_logs.md)
 
