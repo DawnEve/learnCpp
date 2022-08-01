@@ -8,3 +8,5 @@ v0.6.1 fix links
 v0.6.2 add vector
 v0.6.3 add string, array
 v0.6.4 add array
+    Jump 多维数组: P112, pdf138/864;
+v0.6.5 add expression, flow
