@@ -11,3 +11,4 @@ v0.6.4 add array
     Jump 多维数组: P112, pdf138/864;
 v0.6.5 add expression, flow
 v0.6.6 fix links and log
+v0.6.7 add fun, P221/864

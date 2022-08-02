@@ -32,4 +32,5 @@
 * Appendix
     * [vscode 技巧](Z1/1_vscode.md)
     * [Reading Logs](Z1/2_reading_logs.md)
+    * [系统命令](Z1/3_OS_cmd.md)
 
