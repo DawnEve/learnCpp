@@ -2,18 +2,29 @@
 
 > version: 0.6.5
 
+> [Book reading logs](Z1/2_reading_logs.md): by thread And/Or by date;
+
+
 
 ## Aims
 * Aim1: 看完 c++ primer 5th Edition 《Primer C++(第5版).pdf》
     - 864 pages;
+    - 学习方法：看书、手编代码，记心得体会/错误体会，标记易错点、难点；
+    - 争取下次又不会的学到更快
 * Aim2: from UI to graphics
 * Aim3: Project like screen shot app;
 * Aim4: Public this book. So try different examples.
 
 
+
+
+
 ## Resources
-* [A0/2_resource.md](/A0/2_resource): usefull resources.
-* docsify 编写规则: [效果](https://docsify.js.org/#/custom-navbar)， [原文](https://github.com/docsifyjs/docsify/blob/develop/docs/custom-navbar.md?plain=1)
+* docsify 编写规则: [效果](https://docsify.js.org/#/custom-navbar)， [github原文](https://github.com/docsifyjs/docsify/blob/develop/docs/custom-navbar.md?plain=1)
+* [cpp-cheatsheet](https://github.com/mortennobel/cpp-cheatsheet): single page info
+* More resources: [A0/2_resource.md](/A0/2_resource.md)
+
+
 
 
 
@@ -22,7 +33,7 @@
 - File location: Y station `/home/wangjl/data/project/learnCpp` 
 - How to view: start an static server in docs/ is enough "cd docs/ && python3 -m http.server 8004"
 
-> [Reading logs](Z1/2_reading_logs.md): by thread And/Or by date;
+
 
 
 

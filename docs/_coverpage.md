@@ -1,6 +1,7 @@
 ![logo](static/images/logo_icon.svg)
-# My C++ docs
-## 个人文档网站
+# C++ primer, 5th Edition
+## This is my note
+
 > 一个神奇的文档网站生成工具 docsify
 * Simple and lightweight (~12kb gzipped)
 * Multiple themes

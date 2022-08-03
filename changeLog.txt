@@ -12,3 +12,4 @@ v0.6.4 add array
 v0.6.5 add expression, flow
 v0.6.6 fix links and log
 v0.6.7 add fun, P221/864
+v0.6.8 fix home page

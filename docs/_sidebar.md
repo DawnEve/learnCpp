@@ -6,7 +6,7 @@
 
 
 
-* Part I Basics
+* Part I C++基础
     * [1.Start](A1/1_start.md)
     * [2.变量与基本类型](A1/2_parameter_type.md)
     * [3.字符串、向量和数组](A1/3_string_vector_array.md)
@@ -18,15 +18,24 @@
 
 
 
-* [Part II Class](A2/1_readme.md)
+* Part II C++标准库
+    * [8.IO类]((A2/8_IO.md))
 
 
 
-* [Part III template](A3/1_readme.md)
+
+* Part III 类设计者的工具
+    * [13.拷贝控制](A3/13_copy_control.md)
 
 
 
-* [Part IV algorithm](A4/1_readme.md)
+* Part IV 高级主题
+    * [13.标准库特殊设施](A4/17_stdlib_infrastructure.md)
+
+
+
+* 算法
+    * [算法概览](B1/algorithm.md)
 
 
 * Appendix
