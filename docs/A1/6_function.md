@@ -812,6 +812,100 @@ int *(&arr)[10] = ptrs; //arr 是数组的引用，该数组含有10个指针
 // &arr 是一个引用，看右侧[10] 是一个10元素数组，左侧 int * 每个元素都是指向整数的指针。
 ```
 
+> 注意，&arr两端的圆括号不能省略！
+
+```
+f(int &arr[10])   //错误：将arr声明成了引用的数组
+f(int (&arr)[10]) //正确：arr是具有10个整数的整型数组的引用
+```
+
+例: 缺点是，只能传入大小为固定值的数组。
+
+```
+#include<iostream>
+using namespace std;
+
+//数组引用形参 fn(int (&arr)[3]) 注意，(%arr) 的圆括号不能省略
+//void change(int &arr[3]){ //error: declaration of ‘arr’ as array of references
+void change(int (&arr)[3]){
+    cout << sizeof(arr)/sizeof(int) << endl; //能获取长度
+    arr[0]=1024; //能修改数组的值
+}
+
+
+int main(){
+    int i1=1, i2=2, i3=3, arr2[]={10,20,30};
+    change(arr2);
+    cout << arr2[0] << endl;
+
+    return 0;
+}
+
+$ g++ a15_para_arrRef.cpp 
+$ ./a.out 
+3
+1024
+```
+
+- P576, 16.1.1 将要讲解如何编写这个函数，可以给引用的形参传递任意大小的数组。
+
+
+
+#### 传递多维数组
+
+- 给多维数组传递参数，实质上是传递的指向第一个元素的指针。
+- 而数组第二维（及之后的维度）是数组的一部分，不能省略。
+
+```
+#include<iostream>
+using namespace std;
+
+//传递多维数组，要传递第二维及之后的维度
+//void print(int (*arr)[2], int rowSize){
+void print(int arr[][2], int rowSize){ //等价形式
+    for(int i=0; i<rowSize; ++i){
+        for(int j=0; j<2; ++j){
+            cout << arr[i][j] << "\t";
+        }
+        cout << endl;
+    }
+}
+
+
+
+int main(){
+    int arr2[3][2]={ {1,2}, {10,20}, {100,200} };
+    print(arr2, 3);
+
+    return 0;
+}
+
+$ g++ a16_para_multi_arr.cpp 
+$ ./a.out 
+1       2
+10      20
+100     200
+```
+
+
+> 再次强调， *arr 两端的圆括号必不可少！
+
+```
+int *matrix[10]; //10个指向int的指针构成的数组
+int (*matrix)[10]; //指向含有10个整数的数组的指针
+
+
+void print( int (*matrix)[10], int rowSize){} 
+//等价于
+void print( int matrix[][10], int rowSize){}  //形参看起来是一个二维数组，实际上是指向含有10个整数的数组的指针。
+```
+
+
+
+
+
+
+### main: 处理命令行选项
 
 
 

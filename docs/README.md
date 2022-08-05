@@ -1,6 +1,6 @@
 # About this C++ note
 
-> version: 0.6.5
+> version: 0.6.9
 
 > [Book reading logs](Z1/2_reading_logs.md): by thread And/Or by date;
 
@@ -8,7 +8,7 @@
 
 ## Aims
 * Aim1: 看完 c++ primer 5th Edition 《Primer C++(第5版).pdf》
-    - 864 pages;
+    - 864 pages: G:/books_on_coding/c语言/Primer C++(第5版).pdf
     - 学习方法：看书、手编代码，记心得体会/错误体会，标记易错点、难点；
     - 争取下次又不会的学到更快
 * Aim2: from UI to graphics

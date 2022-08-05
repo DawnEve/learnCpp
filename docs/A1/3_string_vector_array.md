@@ -1897,30 +1897,448 @@ $ ./a.out
 
 ## 3.6 多维数组
 
+> //todo jump, P112, pdf138/864 //doing //done;
+
 - c++中的多维数组，就是数组的数组。
-
-//todo jump, P112, pdf138/864
-
+- 当一个数组的元素任然是数组时，通常需要2个维度来定义它：第一个维度表示数组本身大小，另一个维度表示其元素（也是数组）的的大小。
 
 
+- `int arr[3][4];` 先看 arr[3] 表示是含有3个元素的数组，再看右侧[4] 表示每个元素是含有4个元素的数组，再看左侧，知道这4个是整数。
+- 对于二维数组，通常把第一维称为行，第二维称为列。
+
+
+例: 按照从内到外的顺序阅读理解其定义。
+
+```
+#include<iostream>
+using namespace std;
+
+//多维数组
+int main(){
+    //定义
+    int marr[3][4]; //大小为3的数组，每个元素是含有4个整数的数组
+
+    //大小为10的数组，每个元素都是大小为20的数组，这些数组的元素是含有30个整数的数组
+    int marr2[10][20][30]={0}; //将所有元素初始化为0
+
+    cout << sizeof(marr)/sizeof(int) << endl;
+    cout << sizeof(marr2)/sizeof(int) << endl;
+
+    return 0;
+}
+
+$ g++ d1_multi_arr.cpp 
+$ ./a.out 
+12
+6000
+```
+
+
+
+### 多维数组的初始化
+
+> 注意多维数组传参时的 引用传递参数。后文 第六章 函数 6.2.4 讲到。
+
+```
+#include<iostream>
+using namespace std;
+
+
+// 打印二维数组
+void print(int (&p)[3][2] ){
+    for(int i=0; i<3; i++){
+        for(int j=0; j<2; j++){
+            cout << p[i][j] << "\t";
+        }
+        cout << endl;
+    }
+    cout << endl;
+}
+
+
+// 多维数组的初始化
+int main(){
+    // 1. 使用花括号括起来的一组值初始化多维数组
+    int arr[3][2]={ //3个元素，每个元素是长度为2的数组
+        {1,2},   //第一行初始化
+        {10,20},  //第二行初始化
+        {100,200}  //第三行初始化
+    };
+    print(arr);
+
+    // 内层的花括号不是必须的。
+    // 2. 更简洁的
+    int arr2[3][2]={1,2,10,20,100,200};
+    print(arr2);
+    
+    // 并不是必须每个值都要初始化。
+    // 3. 显式的初始化每一行的首元素
+    int arr3[3][2]={ {1}, {10}, {100}}; //其他未列出的元素执行默认值初始化
+    print(arr3);
+
+    //4. 上文如果不加内层花括号，则结果不同
+    int arr4[3][2]={1,10,100}; //表示只初始化第一行2个元素和第二行第一个元素，其余都是0
+    print(arr4);
+
+    return 0;
+}
+
+
+$ g++ d2_multi_arr_init.cpp 
+$ ./a.out 
+1       2
+10      20
+100     200
+
+1       2
+10      20
+100     200
+
+1       0
+10      0
+100     0
+
+1       10
+100     0
+0       0
+
+```
+
+
+
+
+### 多维数组的下标引用
+
+- 多维数组的每个维度对应一个下标运算符。
+- 如果表达式含有的下标运算符数量和数组的维度一样多，则返回的是给定类型的元素。
+- 如果表达式含有的下标运算符数量小于数组的维度，则表达式的结果将是给定所引出的一个内层数组。
+
+```
+#include<iostream>
+using namespace std;
+
+// 多维数组的下标引用
+int main(){
+    // define
+    int arr[]={0,1,2,3,4};
+    int ia[3][4]={0};
+    ia[2][3] = arr[3]; //arr[3] 是一个元素，赋值给 ia 最后一行、最后一列的元素
+
+    int (&row)[4] = ia[2]; //把row绑定到 ia 的第3个 四元素上。
+    // 定义从内向外看： row 是一个引用，指向一个4元素数组，元素是int。
+
+    // output
+    for(int i=0; i<3; i++){
+        for(int j=0; j<4; j++){
+            cout << ia[i][j] << "\t";
+        }
+        cout << endl;
+    }
+    // output: row 就是 ia[2] 的别名
+    for(int i=0; i<4; i++)
+        cout << row[i] << " - " << ia[2][i]<< endl;
+
+    return 0;
+}
+
+
+$ g++ d3_muti_arr_index.cpp 
+$ ./a.out 
+0       0       0       0
+0       0       0       0
+0       0       0       3
+0 - 0
+0 - 0
+0 - 0
+3 - 3
+```
+
+
+
+#### 两层嵌套处理多维数组
+
+- 外层for遍历数组所有元素，注意这里的每个元素也是一个一维数组；
+- 内层循环遍历一维数组的每个元素。
+
+```
+#include<iostream>
+using namespace std;
+
+// 两层嵌套for处理多维数组
+int main(){
+    constexpr size_t rowCnt=3, colCnt=4;
+    int ia[rowCnt][colCnt]; //12个未初始化的元素
+
+    // 对于每一行
+    for(size_t i=0; i!=rowCnt; ++i){
+        //对于行内的每一列
+        for(size_t j=0; j!=colCnt; ++j){
+            //将元素的位置索引作为它的值
+            ia[i][j] = i*colCnt + j;
+            cout << ia[i][j] << "\t";
+        }
+        cout << endl;
+    }
+
+    return 0;
+}
+
+$ g++ d4_multi_arr_for.cpp 
+$ ./a.out 
+0       1       2       3
+4       5       6       7
+8       9       10      11
+```
+
+
+### 使用 范围 for 语句处理多维数组
+
+- C++11新标注中新增范围for语句: `for(auto &row : arr)`
+- 范围for循环处理多维数组，除了最内层的循环外，其他所有循环的控制变量都应该是引用类型。
+
+
+```
+#include<iostream>
+using namespace std;
+
+// 范围for遍历二维数组
+int main(){
+    int ia[2][3];
+
+    //遍历初始化
+    size_t cnt=0;
+    for(auto &row : ia){ // 对于外层的每个元素(都是数组)
+        for(auto &col: row){ //对于内层的每个元素(都是int)
+            col = cnt;
+            ++cnt;
+        }
+    }
+
+    //遍历输出
+    for(auto &row : ia){ //外循环一定要声明成引用类型，因为内循环要用。
+        for(auto col: row){
+            cout << col << "\t";
+        }
+        cout << endl;
+    }
+
+    return 0;
+}
+
+$ g++ d5_multi_arr_range_for.cpp 
+$ ./a.out 
+0       1       2
+3       4       5
+```
 
 
 
 
 
+### 指针和多维数组
+
+> 定义指向多维数组的指针时，记住：这个多维数组实际上是数组的数组。
+
+- 当程序使用多维数组的名字时，也会自动将其转换为指向数组首元素的指针。
+- 多维数组名字，实际上是指向第一个内层数组的指针。
+
+
+```
+#include<iostream>
+using namespace std;
+
+// 指针 与 多维数组
+int main(){
+    int ia[3][4] = {1,2,3,4,5,6,7,8,9,10,11,12}; //大小为3，每个元素是4整数一维数组
+    int (*p)[4] = ia; //p指向含有4个整数的数组
+
+    // 输出
+    for(int i=0; i<4; i++)
+        cout << (*p)[i] << endl;
+    cout << endl;
+
+    // 重新赋值
+    p=&ia[2]; //p指向ia的尾元素
+    for(int i=0; i<4; i++)
+        cout << (*p)[i] << endl;
+
+    return 0;
+}
+
+$ g++ d6_multi_arr_ptr.cpp 
+$ ./a.out 
+1
+2
+3
+4
+
+9
+10
+11
+12
+```
+
+- 怎么理解指向二维数组的指针的定义 `int ia[3][4]; int (*p)[4]=ia;` 
+- 从内向外： (*p) 是一个指针，看右侧，发现该指针指向一个4元素数组，看左侧，发现每个元素是int。因此，p是一个指向含有4个整数的数组的指针。
+
+```
+// 不能省略圆括号！
+int *ip[4]; // 整型指针的数组
+int (*ip)[4]; // 指向含有4个整数的数组的指针
+```
+
+例:
+```
+#include<iostream>
+using namespace std;
+
+// 指向数组的指针，定义时不能省略圆括号
+int main(){
+    // 不能省略圆括号！否则就从指向数组的指针，变为 指针构成的数组。
+    int *ip1[4]; // 整型指针的数组: 先看 ip[4] 是个4元素数组，再看左侧，每个元素是 int*
+    int (*ip2)[4]; // 指向含有4个整数的数组的指针
+
+    // 1. int *ip[4] 等价于  int *(ip[4])，默认从右向左看
+    int a=1, b=2, c=3, d=4;
+    ip1[0]=&a;
+    cout << *ip1[0] << "\t" << *(ip1[0]) << endl;
+
+    // 2.  int (*ip)[4]; 从内向外解读：*ip 首先ip是一个指针，看右侧 指向的是一个4元素数组，看左侧，每个元素是int
+    int arr[]={0,1,2,3};
+    ip2= &arr; //这个赋值的 & 也不能省略！
+
+    for(int i=0; i<4; i++){
+        cout << (*ip2)[i] << "\t"; //注意，圆括号必须！
+    }
+    cout << endl;
+
+    return 0;
+}
+
+
+$ g++ d7_multi_arr_ptr2.cpp 
+$ ./a.out 
+1       1
+0       1       2       3
+```
+
+
+
+#### C++11 新标准可以避免在数组前面加上一个指针类型
+
+- 使用 auto 和 decltype 
+
+```
+#include<iostream>
+using namespace std;
+
+//使用C++11新标准 auto 和 decltype ，可避免在数组前面加上一个指针类型
+int main(){
+    int ia[3][4]={1,2,3,4,5,6,7,8,9,10,11,12};
+    // C++11 输出二维数组，每个内存元素一行
+    for(auto p=ia; p!=ia+3; ++p){
+        //q 指向4个整数数组的首元素，也就是说，q指向一个整数
+        cout << ">>" << p << " | " << *p << endl;
+        for(auto q=*p; q!=*p+4; ++q){ //必须解引用，虽然解引用后地址不变 //todo
+            cout << *q << "|" << q << "\t";
+        }
+        cout << endl;
+    }
+
+    return 0;
+}
+
+
+$ g++ d8_multi_arr_decltype.cpp 
+$ ./a.out 
+>>0x7ffe1dd819e0 | 0x7ffe1dd819e0
+1|0x7ffe1dd819e0        2|0x7ffe1dd819e4        3|0x7ffe1dd819e8        4|0x7ffe1dd819ec
+>>0x7ffe1dd819f0 | 0x7ffe1dd819f0
+5|0x7ffe1dd819f0        6|0x7ffe1dd819f4        7|0x7ffe1dd819f8        8|0x7ffe1dd819fc
+>>0x7ffe1dd81a00 | 0x7ffe1dd81a00
+9|0x7ffe1dd81a00        10|0x7ffe1dd81a04       11|0x7ffe1dd81a08       12|0x7ffe1dd81a0c
+```
+
+- 外层的for 声明一个指针p，并指向ia的第一个内层数组，然后依次迭代直到ia的全部3行处理完。 ++p负责将指针p移动到ia的下一行。
+- 内层 for 负责输出内层所包含的值。首先令指针q指向p当前所在行的第一个元素。
+- *p是一个含有4整数的数组，数组名自动转换为指向元素首元素的指针。
 
 
 
 
 
+#### 也可以使用 begin 和 end 进行遍历
+
+- 使用 auto 就不用烦心循环变量是什么类型了。
+
+```
+#include<iostream>
+using namespace std;
+
+//多维数组，使用 begin 和 end 遍历, 更简洁
+int main(){
+    int arr[2][3]={ {1,2,3}, {10,20,30}};
+
+    //p指向arr第一个数组
+    for(auto p=begin(arr); p!=end(arr); ++p){
+        //q指向内层数组的首元素
+        for(auto q=begin(*p); q!=end(*p); ++q){
+            cout << *q << "\t";
+        }
+        cout << endl;
+    }
+
+    return 0;
+}
+
+$ g++ d9_multi_arr_begin_end.cpp 
+$ ./a.out 
+1       2       3
+10      20      30
+```
 
 
 
 
+### 类型别名简化多维数组的指针
 
+- 读、写、理解一个指向多维数组的指针，十分烦人。使用类型别名可以一定程度的简化这一工作。
+
+```
+#include<iostream>
+using namespace std;
+
+//使用类型别名，简化多维数组的指针
+int main(){
+    // 如下2行声明等价
+    //using int_arr4 = int[4]; //新标准下类型别名的声明，见 2.5.1
+    typedef int int_arr4[4]; //等价的 typedef 声明
+
+    int arr[2][4]={1,2,3,4, 10,20,30,40};
+    
+    //output
+    for(int_arr4 *p=arr; p!=arr+2; ++p){
+        for(int *q=*p; q!=*p+4; ++q){
+            cout << *q << "\t";
+        }
+        cout << endl;
+    }
+    return 0;
+}
+
+$ g++ d10_multi_arr_using.cpp 
+$ ./a.out 
+1       2       3       4
+10      20      30      40
+```
+
+程序将“4个整数组成的数组”类型命名为 int_arr，用该类名定义外层循环变量的控制变量，更简明。
 
 
 
 
 > 2022.7.29
+
 > 2022.8.1 almost over;
+
+> 2022.8.5 multi arr;
