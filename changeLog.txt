@@ -17,7 +17,7 @@ v0.6.7 add fun, P221/864
 v0.6.8 fix home page
 v0.6.9 add 多维数组;
 v0.7.0 add fn return
-
+v0.7.1 add 返回左值的函数
 
 
 

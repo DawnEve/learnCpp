@@ -1294,11 +1294,355 @@ $ ./a.out
 
 
 
+#### 值是如何被返回的
+
+- 返回一个值的方式和初始化一个变量或形参的方式完全相同：返回的值用于初始化调用点的要给临时量，该临时量就是函数调用的结果。
+
+> 注意：函数返回局部变量时的初始化规则：
+
+例: 根据计数器，确定单词的单数和复数形式。
+
+```
+#include<iostream>
+using namespace std;
+
+//根据计数器，返回单复数
+string make_plural(size_t ctr, const string &word, const string &ending){
+    return (ctr>1) ? word+ending : word;
+    //该函数的返回值是string，意味着返回值将被拷贝到调用点。
+    //因此，该函数将返回word的副本或者一个未命名的临时string对象，该对象的内容是 word 和 ending 的和。
+}
+
+//如果函数返回一个引用，则该引用仅是它所引用对象的一个别名。
+//返回string对象中较短的那个
+const string &shorterString(const string &s1, const string &s2){
+    return s1.size() <= s2.size() ? s1 : s2;
+    // 形参和返回类型都是 const string 引用，不管是调用函数还是返回结果都不会真正拷贝string 对象
+}
+
+
+int main(){
+    string s1="hi";
+    string s2="dog";
+    string ending="s";
+
+    //返回拷贝，则地址改变
+    string s3=make_plural(3, s2, ending);
+    string s4=make_plural(1, s2, ending);
+    cout << "addr: &s2=" << &s2 << ", value s2=" << s2 << endl;
+    cout << "addr: &s3=" << &s3 << ", value s3=" << s3 << endl;
+    cout << "addr: &s4=" << &s4 << ", value s4=" << s4 << endl;
+    cout << endl;
+
+    // 传入引用，返回引用，如果用同类型接收返回值，则地址不变
+    const string &s5=shorterString(s1, s2); //必须使用相同的类型接收返回值(const + &)，否则还可能继续拷贝变量（string s5 OR const string s5）
+    cout << "addr: &s1=" << &s1 << ", value s1=" << s1 << endl;
+    cout << "addr: &s5=" << &s5 << ", value s5=" << s5 << endl;
+
+    return 0;
+}
+
+
+$ g++ b8_return_word.cpp 
+$ ./a.out 
+addr: &s2=0x7fff8e3a8290, value s2=dog
+addr: &s3=0x7fff8e3a82d0, value s3=dogs
+addr: &s4=0x7fff8e3a82f0, value s4=dog
+
+addr: &s1=0x7fff8e3a8270, value s1=hi
+addr: &s5=0x7fff8e3a8270, value s5=hi
+```
+
+
+
+
+#### 不要返回局部对象的引用或指针
+
+函数调用结束，占用的内存将被释放。如果返回局部对象的引用或指针，则该区域将不再是有效内存区域。
+
+```
+#include<iostream>
+using namespace std;
+
+// 返回函数局部变量的指针或引用，将报错
+int *fn1(){
+    int i=5;
+    return &i;
+    // warning: address of local variable ‘i’ returned
+}
+
+int main(){
+    int *p=fn1();
+    cout << *p << endl; // 运行时错误: Segmentation fault (core dumped)
+
+    return 0;
+}
+
+
+$ g++ b9_return_local_var.cpp 
+b9_return_local_var.cpp: In function ‘int* fn1()’:
+b9_return_local_var.cpp:7:12: warning: address of local variable ‘i’ returned [-Wreturn-local-addr]
+    7 |     return &i;
+      |            ^~
+b9_return_local_var.cpp:6:9: note: declared here
+    6 |     int i=5;
+      |         ^
+$ ./a.out 
+Segmentation fault (core dumped)
+```
+
+
+返回引用的错误例子类似：
+
+```
+#include<iostream>
+using namespace std;
+
+//返回局部变量的值的引用，也会报错
+const string &manip(int signal){
+    string ret;
+    // 改变一下rect的值
+    if(signal==0)
+        ret =0;
+    else
+        ret="hi";
+    
+    if( ! ret.empty() )
+        return ret;  //错误：返回局部对象的引用
+        // warning: reference to local variable ‘ret’ returned
+    else
+        return "Empty"; //错误："Empty" 是一个局部临时量
+        // warning: returning reference to temporary
+}
+
+
+int main(){
+    const string s0=manip(0);
+    const string s1=manip(1);
+
+    //cout << s0 << endl;
+    //cout << s1 << endl;
+
+    return 0;
+}
+
+
+$ g++ b10_return_local_var_ref.cpp
+$ ./a.out 
+Segmentation fault (core dumped)
+```
+
+
+> 要想返回安全的引用，我们不妨提问：引用所引的是函数之前已经存在的那个对象？
 
 
 
 
 
+#### 返回类类型的函数和调用运算符
+
+- 调用运算也符合左结合律。
+- 调用运算的优先级与 点和箭头元素符相同。
+
+
+```
+// 调用string 对象的size成员函数。
+auto sz= shorterString(s1, s2).size();
+```
+
+
+
+#### 引用返回左值
+
+- 调用一个返回引用的函数得到左值，其他返回类型得到右值。
+- 可以像其他左值那样使用返回左值的函数。特别的，我们能为返回类型是非常量引用的函数的结果赋值。
+
+> 把函数调用写到赋值语句的左侧，看起来很奇怪，但左值就是这么用的。左值可以放到赋值运算的左侧。
+
+```
+#include<iostream>
+using namespace std;
+
+//为返回左值的函数结果赋值，不能是常量
+char &get_val(string &str, string::size_type index){
+    return str[index];
+}
+
+
+int main(){
+    string s1="hello";
+    cout << "1 &s1=" << &s1 << endl;
+
+    string &s2=s1;
+    cout << "2 &s2=" << &s2 << endl; //引用，就是别名，所以指向的地址是相同的。
+
+
+    // 无法获取返回的引用的地址 //todo why?
+    cout << "3 get_val(s1, 0): " << get_val(s1, 0) << endl;
+    cout << "4 &get_val(s1, 0): " << &get_val(s1, 0) << endl;
+    //赋值给变量也不行 //todo why?
+    char &r1=get_val(s1, 0); // 加const也不报错
+    cout << "5 r1=" << r1 << endl; //拿不到地址
+    cout << "6 &r1=" << &r1 << endl;
+    //通过修改r1修改s1的值
+    r1='a';
+    cout << "7 s1=" << s1 << endl;
+
+    //通过左值改变原始字符串
+    cout << "8 s1=" << s1 << endl;
+    get_val(s1, 0)='H'; //将 s1[0] 的值改为H
+    cout << "9 s1=" << s1 << endl;
+
+    return 0;
+}
+
+
+$ g++ b11_return_left_value.cpp 
+$ ./a.out 
+1 &s1=0x7fff372d4e40
+2 &s2=0x7fff372d4e40
+3 get_val(s1, 0): h
+4 &get_val(s1, 0): hello
+5 r1=h
+6 &r1=hello
+7 s1=aello
+8 s1=aello
+9 s1=Hello
+```
+
+如果返回类型是常量引用，则不能给调用的结果赋值。
+
+```
+shorterString("hi", "bye") = "X"; //错误：返回值是一个常量
+```
+
+
+
+#### 列表初始化返回值
+
+- C++11新标准，函数可以返回花括号包围的值的列表。
+- 类似其他返回结果，此处的列表也用来对表示函数返回的临时量进行初始化。
+    * 如果列表为空，临时量执行值初始化；
+    * 非空，返回的值由函数的返回类型决定。
+
+例：6.2.6节的 error_msg 函数，其输入是一组可变数量的string 实参，输出是这些输入string对象组成的错误信息。
+本题，我们返回一个vector对象，用它存放表示错误信息的string 对象。
+
+```
+#include<iostream>
+#include<vector>
+using namespace std;
+
+//返回列表初始化值的函数
+vector<string> process(){
+    string expected = "hello";
+    string actual;
+    cout << "Please input hello, otherwise may produce an err msg:" << endl;
+    cin >> actual;
+    //开始判断
+    if( expected.empty())
+        return {}; //返回一个空vector 对象
+    else if(expected == actual)
+        return {"functionX", "okey"}; //返回列表初始化vector
+    else 
+        return {"functionX", expected, actual};
+}
+
+int main(){
+    vector<string> msg=process();
+
+    for(auto i: msg)
+        cout << i << " ";
+    cout << endl;
+
+    return 0;
+}
+
+$ g++ b12_return_list.cpp
+
+$ ./a.out 
+Please input hello, otherwise may produce an err msg:
+hi
+functionX hello hi 
+
+$ ./a.out 
+Please input hello, otherwise may produce an err msg:
+hello
+functionX okey 
+```
+
+- 如果函数返回的是内置类型，则花括号包围的列表最多包含一个值，而且该值占用的空间不能大于目标类型的空间。
+- 如果函数返回的是 类 类型，有类本身定义初始值如何使用。
+
+```
+#include<iostream>
+using namespace std;
+
+//返回内置类型的 列表初始化值
+int init(int x){
+    //return {x, 100}; //error: cannot convert ‘<brace-enclosed initializer list>’ to ‘i in return
+    return {x};
+}
+
+int main(){
+    int a=init(10);
+    cout << a << endl;
+    return 0;
+}
+
+$ g++ b13_return_list2.cpp 
+$ ./a.out 
+10
+```
+
+
+
+
+
+#### 主函数 main 的返回值
+
+- main 函数可以没有返回值，隐式在末尾添加 `return 0;`
+- 返回0表示执行成功，其他值表示失败。
+    * 其中非0值与机器有关。为了与机器无关，cstdlib头文件定义了2个预处理变量，EXIT_FAILURE / EXIT_SUCCESS。
+    * 预处理变量，不能加std::，也不能在using 声明中出现。
+
+```
+#include<iostream>
+using namespace std;
+
+int main(int argc, char **argv){
+    int i=argc;
+    cout << "Parameter number: " << i-1 << endl;
+
+    //不输入参数则报错
+    if(i>1){
+        cout << "ok" << endl;
+        return EXIT_SUCCESS; //定义在 cstdlib 头文件中
+    }else{
+        cout << "Error: no parameter" << endl;
+        return EXIT_FAILURE; //定义在 cstdlib 头文件中
+    }
+}
+
+
+$ g++ b14_EXIT.cpp 
+$ ./a.out 
+Parameter number: 0
+Error: no parameter
+$ echo $?
+1
+
+$ ./a.out 1 2 3
+Parameter number: 3
+ok
+$ echo $?
+0
+```
+
+
+
+
+#### 递归
 
 
 
