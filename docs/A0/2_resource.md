@@ -64,3 +64,10 @@
 - [C++/C codes and algos](https://github.com/akshitagit/CPP)
 
 
+
+
+
+
+## Other's blogs: C++ primer
+
+- [函数](https://www.cnblogs.com/Hugh-Locke/p/13235768.html), [ref2](https://leoneo.top/2021/01/25/c-func/), [ref3](https://www.cnblogs.com/pluse/p/5133564.html) 带部分答案,  

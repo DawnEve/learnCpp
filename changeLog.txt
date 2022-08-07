@@ -1,3 +1,5 @@
+version changes of this C++ note system.
+
 v0.1 empty repo in Docker, can view on 3000 port, host 8003
 v0.2 add how to make this book 
 v0.3 correct sidebar
@@ -14,3 +16,16 @@ v0.6.6 fix links and log
 v0.6.7 add fun, P221/864
 v0.6.8 fix home page
 v0.6.9 add 多维数组;
+v0.7.0 add fn return
+
+
+
+
+
+
+
+
+
+==> befor commit:
+  update version in header of /README.md
+  log current pages in /Z1/2_reading_logs.md

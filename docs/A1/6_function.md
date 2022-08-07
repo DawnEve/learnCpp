@@ -907,6 +907,262 @@ void print( int matrix[][10], int rowSize){}  //形参看起来是一个二维�
 
 ### main: 处理命令行选项
 
+> 怎么向程序传参数？通过main函数的2个参数。
+
+```
+int main(){} //之前我们一直使用空参数的main
+
+// 假设编译后的程序是 a.out, 传参数格式：
+$ a.out -d -o ofile data0 #该命令通过2个可选 形参传递给main函数
+
+int main(int argc, char *argv[]){}
+// 第一个是argc参数个数，第二个 argv 是一个数组，其元素指向C风格的字符串的指针。
+
+// 因为第二个形参是数组，所以也可写写成
+int main(int argc, char **argv){} //其中 argv 是指针，指向 char*.
+```
+
+当实参传递给main函数后，argv 的第一个元素指向程序的名字或者一个空字符串，接下来的元素依次传递命令行提供的实参，最后一个指针之后的元素值保证是0.
+
+```
+#include<iostream>
+using namespace std;
+
+//main 函数接受参数
+int main(int argc, char **argv){
+    // 打印各个参数
+    cout << "argc=" << argc << endl;
+    
+    int i=0;
+    while (argv[i] != 0){
+        cout << "argv[" << i << "]=" << argv[i] << endl;
+        i++;
+    }
+    cout << endl;
+
+    while (*argv != 0){
+        cout << "*argv=" << *argv++ << endl;
+    }
+
+    return 0;
+}
+
+$ g++ b1_main_argv.cpp
+$ ./a.out -d -o ofile data0
+argc=5
+argv[0]=./a.out
+argv[1]=-d
+argv[2]=-o
+argv[3]=ofile
+argv[4]=data0
+
+*argv=./a.out
+*argv=-d
+*argv=-o
+*argv=ofile
+*argv=data0
+```
+
+> 当使用argv 中的实参时，一定要记着可选实参从 argv[1] 开始； argv[0] 是保存程序的名字，不是用户输入的参数。
+
+
+例：编写一个main，接收两个实参，把它们连成一个string并输出。
+
+```
+#include<iostream>
+using namespace std;
+
+//
+int main(int argc, char *argv[]){
+    int i=0;
+    while(argv[i] !=0){
+        i++;
+    }
+    if(i<2){
+        cout << "Error: must provide 2 parameters" << endl;
+        return -1;
+    }
+
+    string s1=argv[1];
+    string s2=argv[2];
+    cout << s1+s2 << endl;
+
+    return 0;
+}
+
+$ g++ b2_main_arg_concat.cpp 
+$ ./a.out hello world
+helloworld
+$ ./a.out
+Error: must provide 2 parameters
+```
+
+
+
+
+
+
+### 含有可变形参的函数
+
+- 我们无法提前预知应该接收几个参数时，C++11 新标准提供了2种主要的方法：
+    * `initializer_list` 的标准库函数，处理相同的实参类型；
+        * 不同类型的实参，可以使用 `可变参数模板` 这种特殊的函数(见P648 16.4节)；
+    * 另一种是 `省略符`。
+
+
+#### initializer_list 形参
+
+- 适用于实参数量未知，但是类型相同的的情况。
+- initializer_list 是一种标准库类型，用于表示某种特定类型的数组(见P101, 3.5节)
+- initializer_list 类型定义在同名的头文件中。
+
+```
+// initializer_list 提供的操作
+
+initializer_list<T> lst; //默认初始化；T类型元素的空数组
+initializer_list<T> lst{a,b,c...}; //lst的元素数量和初始值一样多；lst的元素是对应初始值的副本；列表中的元素是const；
+lst2(lst); // 拷贝或赋值一个 initializer_list 对象不会拷贝列表中的元素；拷贝后，原始列表和副本共享元素。
+lst2=lst; //同上
+
+lst.size(); //元素个数
+lst.bebin(); //返回指向lst中首元素的指针
+lst.end(); //返回指向lst中尾后元素的指针
+```
+
+
+- 和 vector 一样，是一种模板类型。定义时，必须说明列表中的元素的类型：
+
+```
+initializer_list<string> ls; //元素类型是string
+initializer_list<int> li; //元素类型是int
+```
+
+- 和 vector 不同的是，initializer_list 对象中的元素永远是常量值，我们无法改变 initializer_list 中的元素的值。
+- 可以使用迭代器 x.begin() 和 x.end() 或者 范围 for 遍历 initializer_list 对象。
+
+```
+#include<iostream>
+using namespace std;
+
+// initializer_list 获取不定数量参数，类型相同
+void error_msg(initializer_list<string> il){
+    for(auto beg=il.begin(); beg!=il.end(); ++beg){
+        cout << *beg << " ";
+    }
+    cout << endl;
+}
+
+
+int main(){
+    //测试错误信息
+    string expected="hello";
+    string actual;
+    cout << "Please input hello, other word may produce an error message:" << endl;
+    cin >> actual;
+
+    if(expected != actual){
+        error_msg({"functionX error:", expected, actual}); //注意，字符串要写到花括号中
+    }else{
+        error_msg({"functionX", "okey"}); //第一次调用传入3个值，第二次调用传入2个值
+    }
+
+    return 0;
+}
+
+$ g++ b3_main_initializer_list.cpp 
+
+$ ./a.out 
+Please input hello, other word may produce an error message:
+hello
+functionX okey 
+
+$ ./a.out 
+Please input hello, other word may produce an error message:
+hi
+functionX error: hello hi
+```
+
+含有 initializer_list 形参的函数也可以同时有其他形参。比如，调试系统可用 ErrCode 类来表示不同类型的错误：
+
+```
+#include<iostream>
+using namespace std;
+
+// ErrCode 类表示不同类型的错误
+//注：作者这里没有说 ErrCode 是啥，也没搜到线索，我推测是一个自定义类，简陋实现如下
+class ErrCode{
+    private:
+        int num=0;
+    public:
+        ErrCode(int i){
+            num=i;
+        }
+        string msg(){
+            if(num==0){
+                return "success";
+            }else{
+                return "InputError";
+            }
+        }
+};
+
+void error_msg(ErrCode e, initializer_list<string> il){
+    //先打印错误
+    cout << e.msg() << ": ";
+
+    for(const auto &elem: il){
+        cout << elem << " ";
+    }
+    cout << endl;
+}
+
+int main(){
+    //测试错误信息
+    string expected="hello";
+    string actual;
+    cout << "Please input hello, other word may produce an error message:" << endl;
+    cin >> actual;
+
+    if(expected != actual){
+        error_msg(ErrCode(42), {"functionX error:", expected, actual}); //注意，字符串要写到花括号中
+    }else{
+        error_msg(ErrCode(0), {"functionX", "okey"}); //第一次调用传入3个值，第二次调用传入2个值
+    }
+
+    return 0;
+}
+
+$ g++ b4_main_initializer_list_ErrCode.cpp
+
+$ ./a.out 
+Please input hello, other word may produce an error message:
+hello
+success: functionX okey 
+
+$ ./a.out 
+Please input hello, other word may produce an error message:
+hi
+InputError: functionX error: hello hi
+```
+
+
+
+#### 省略符形参
+
+- 为了方便C++程序访问C代码而设置的形参，这些代码使用了名为 varargs 的C标准库功能。
+- 通常，省略符形参不能用于其他目的，C编译器文档会描述如何使用 varargs。
+
+> 省略符形参仅仅用于C和C++通用的类型。大多数类 类型的对象在传递给省略符形参时都无法正确拷贝。
+
+```
+// 省略符形参只能是形参列表的最后一个位置。也就两种形式
+void fn(para_list, ...); //前面的形参传递过来会进行类型检查，省略符形参无须类型检查。
+void fn(...);
+```
+
+
+
+
 
 
 
@@ -922,10 +1178,118 @@ void print( int matrix[][10], int rowSize){}  //形参看起来是一个二维�
 
 ## 6.3 返回类型和return语句
 
+- return 是函数终止并把控制权交给调用者的地方。共2种形式：
+
+```
+return;
+return expression;
+```
+
+
+### 无返回值函数
+
+对于返回值为void的函数，如果想在中间提前返回，则可以使用 `return;`，类似 break 语句可以退出循环，这个是退出函数。
+
+例: 使用引用形参，写一个函数交换2个值。
+
+```
+#include<iostream>
+using namespace std;
+
+// 返回空
+void swap(int &i1, int &i2){
+    // 如果相等，直接返回
+    if(i1==i2)
+        return;
+    // 如果不等，则交换值
+    int tmp=i1;
+    i1=i2;
+    i2=tmp;
+    //此处无须显示return语句。
+}
+
+int main(){
+    int x=10, y=-80;
+    cout << "x=" << x << ", y=" << y << endl;
+    swap(x, y);
+    cout << "x=" << x << ", y=" << y << endl;
+
+    return 0;
+}
+
+$ g++ b5_return.cpp 
+$ ./a.out 
+x=10, y=-80
+x=-80, y=10
+```
+
+
+ 一个返回值是 void 的函数也可以使用第二种return语句，只不过这个语句必须是一个返回void 的函数。
+
+```
+#include<iostream>
+using namespace std;
+
+// 返回值是void的函数也可以使用 return expression; 只不过expression必须是返回void的函数。
+
+void logs(int x){
+    cout << "this is fn1(x), x=" << x << endl;
+    return;
+}
+
+void fn(int a){
+    return logs(a);
+}
+
+int main(){
+    fn(500);
+    return 0;
+}
+
+$ g++ b6_return_void.cpp 
+$ ./a.out 
+this is fn1(x), x=500
+```
 
 
 
 
+### 有返回值的函数
+
+尽管c++不能保证结果正确，但是可以保证每个return返回的类型正确。
+
+```
+#include<iostream>
+using namespace std;
+
+// 如果for循环中有return，则for后也要有return语句，不是所有编译器都能是识别这一点。
+int getIndex(int arr[], int value){
+    for(int i=0; i<4; i++){
+        if(arr[i] == value){
+            return i;
+        }
+    }
+
+    //return -1; //for后的 return 是必须的！
+}
+
+int main(){
+    int arr2[]={10,20,30,40};
+    cout << getIndex( arr2, 30) << endl;
+    cout << getIndex( arr2, 35) << endl; //如果 getIndex 没有最后的 return -1; 则找不到时返回异常值: 40
+    return 0;
+}
+
+$ g++ b7_return_in_for.cpp 
+b7_return_in_for.cpp: In function ‘int getIndex(int*, int)’:
+b7_return_in_for.cpp:13:1: warning: control reaches end of non-void function [-Wreturn-type]
+   13 | }
+      | ^
+
+$ ./a.out 
+2
+40
+```
 
 
 
