@@ -1644,6 +1644,232 @@ $ echo $?
 
 #### 递归
 
+- 如果一个函数调用了自己，直接或间接，都叫递归函数(recursive function).
+
+例: 递归实现阶乘。
+
+```
+#include<iostream>
+using namespace std;
+
+// 递归求阶乘
+long fact(int n){
+    long result=1;
+    if(n<=1)
+        return 1;
+    return n*fact(n-1);
+}
+
+int main(){
+    int i=5;
+    cout << i << "!=" << fact(i) << endl;
+
+    return 0;
+}
+
+$ g++ b15_recursive.cpp 
+$ ./a.out 
+5!=120
+```
+
+- 递归函数中，一定要有退出条件，就是某条路径能达到，并且不包含递归调用。
+    * 否则，递归将会无限循环，直到程序栈空间耗尽。我们说这种函数含有 递归循环(recursion loop)。
+- main 函数不能调用它自己。
+
+
+
+例：(其他书的例子) 递归调用是在栈上创建新的函数空间，里面的每个n都是新函数空间的n。
+
+```
+#include<iostream>
+using namespace std;
+
+//显示递归函数中的变量的地址
+void showAddr(int n){
+    cout << "Before " << n << ", addr:" << &n << endl;
+    if(n<4)
+        showAddr(n+1);
+    cout << " After " << n << ", addr:" << &n << endl;
+}
+
+int main(){
+    showAddr(0);
+    return 0;
+}
+
+
+$ g++ b16_recursion_addr.cpp 
+$ ./a.out 
+Before 0, addr:0x7ffdbecddd9c
+Before 1, addr:0x7ffdbecddd7c
+Before 2, addr:0x7ffdbecddd5c
+Before 3, addr:0x7ffdbecddd3c
+Before 4, addr:0x7ffdbecddd1c
+ After 4, addr:0x7ffdbecddd1c
+ After 3, addr:0x7ffdbecddd3c
+ After 2, addr:0x7ffdbecddd5c
+ After 1, addr:0x7ffdbecddd7c
+ After 0, addr:0x7ffdbecddd9c
+```
+
+我们看到，相同的n值表示同一个函数栈，其内存地址是相同的。
+
+
+
+
+
+
+
+
+
+
+### 返回数组指针
+
+- 因为数组不能被拷贝，所以函数不能返回数组。不过，函数可以返回数组的指针或引用。
+- 定义一个返回数组的指针或引用的函数比较繁琐，简化方法是使用类型别名。
+
+
+```
+typedef int arrT4[4]; //arrT4是一个类型别名，表示含有4个整数的数组: int [4]
+
+using arrT4_2= int [4]; //arrT4_2 同上
+arrT4* func(int i); //函数 func 返回一个指向含有10个整数的数组的指针 
+//todo 这是不是会报错？返回的指针指向谁？
+```
+
+其中 arrT4 是含有4个整数的数组的别名。因为函数无法返回数组，但是可以返回指向数组的指针。
+
+
+例: 简化写法的用法。
+
+```
+#include<iostream>
+using namespace std;
+
+// 指向数组的指针
+int get_by_index(int (*p)[4], int index){
+    return (*p)[index];
+}
+
+// 简化版
+typedef int arrT4[4]; //arrT4是一个类型别名，表示含有4个整数的数组: int [4]
+int get_by_index2(arrT4 arr, int index){
+    return arr[index];
+}
+
+using arrT4_2= int [4]; //arrT4_2 同上
+int get_by_index3(arrT4_2 arr, int index){
+    return arr[index];
+}
+
+int get_by_index4(arrT4_2 *p, int index){
+    return (*p)[index];
+}
+
+int main(){
+    int arr[]={50,10,20,30};
+    cout << get_by_index(&arr, 0) << endl;
+    cout << get_by_index2(arr, 0) << endl;
+    cout << get_by_index3(arr, 0) << endl;
+    cout << get_by_index4(&arr, 0) << endl;
+
+    return 0;
+}
+
+$ g++ c1_return_arr_ptr.cpp 
+$ ./a.out 
+50
+50
+50
+50
+```
+
+
+
+#### 声明一个返回数组指针的函数
+
+在声明func是不适用类型别名，就要牢记被定义名字后面数组的维度：
+
+```
+int arr[10]; //arr是一个含有10个整数的数组
+int *p1[10]; //p1是一个数组，含有10个指向int的指针。下标运算优先级 > 解引用符。
+int (*p2)[10] = &arr; //p2是一个指针，指向含有10个整数的数组
+```
+
+- 同上述声明一样，定义一个返回数组指针的函数，则数组的维度必须跟在函数名字后面。
+- 形参列表也跟在函数名字后面，且形参列表优先于数组维度。
+- `Type (*functionName(parameter_list))[dimension];`
+
+Type 表示元素的类型，dimension表示数组维度。(*funName(para_list)) 外面的圆括号必须存在，就像上文定义的p2一样，没有圆括号则意思是：返回的是指针的数组。
+
+
+例: `int (*func(int i))[10];`
+
+- 按照从内到外理解：
+    * func(int i) 表示调用func函数需要一个int类型的实参;
+    * (*func(int i)) 意味着我们可以对函数调用的结果执行解引用操作，也就是返回的是指针。
+    * (*func(int i))[10] 表示解引用func的调用，得到一个10元素数组
+    * 最左侧的int表示10元素数组，每个元素的类型是int。
+
+```
+#include<iostream>
+using namespace std;
+
+int arr[]={0,1,2,3,4};
+
+//返回数组指针
+int (*func(int i))[5]{
+    arr[0] += i; //使用全局变量
+
+    return &arr;
+    //如果不使用全局变量，而是函数内定义 arr，
+    //   则运行时报错，编译时警告: warning: address of local variable ‘arr’ returned 
+}
+
+int main(){
+    int (*p)[5]=func(10); //返回的是指针，获取的也是指针
+    const int (*p2)[5]=func(5); //加const后，有啥变化？
+
+    //查看地址
+    cout << "1 addr &arr: " << &arr << endl;
+    cout << "2 addr p   : " << p << ", &p :" << &p << endl;
+    cout << "3 addr p2  : " << p2 << ", &p2:" << &p2 << endl;
+
+    //修改值
+    arr[1]=100;
+    (*p)[2]=200;
+    //(*p2)[2]=700; //加const后不能用该指针修改指向的值，但是可以修改本身的值，是底层const
+    //error: assignment of read-only location ‘*(p2 + 40)’
+    int arr3[]={0,-1,-2,-3,-4};
+    cout << "4 addr p2:" << p2 << endl;
+    p2= &arr3; //修改指针本身的值
+    cout << "5 addr p2:" << p2 << endl;
+
+    //使用函数作为左值
+    (*func(0))[3]=300;
+    
+    // 遍历
+    for(auto i : *p)
+        cout << i << " ";
+    cout << endl;
+
+    return 0;
+}
+
+
+$ g++ c2_return_ptr.cpp 
+$ ./a.out 
+1 addr &arr: 0x55c265dad010
+2 addr p   : 0x55c265dad010, &p :0x7ffdd3743d88
+3 addr p2  : 0x55c265dad010, &p2:0x7ffdd3743d90
+4 addr p2:0x55c265dad010
+5 addr p2:0x7ffdd3743db0
+15 100 200 300 4
+```
+
+
+
+#### 使用尾置返回类型
 
 
 
