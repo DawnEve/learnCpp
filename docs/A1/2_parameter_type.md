@@ -1132,15 +1132,90 @@ int main(){
 
 
 
+
+
 ### auto 类型说明符
 
 程序根据初始值确定类型。一条语句的类型必须一致。
 
+
+
+
 #### 复合类型、常量和auto
 
-auto 一般忽略掉 顶层const。
+编译器推断出来的auto类型有时候和初始值的类型并不完全一样，编译器会适当的改变结果使其更符合初始化规则。
 
-//todo jump, P62
+
+- 首先，使用引用其实是使用引用的对象，特别是引用被用作初始值时，真正参与初始化的是引用对象的值。此时编译器以引用对象的类型作为auto的类型
+
+```
+int i=0, &r=i;
+auto a=r; //a是一个整数(r是i的别名，而i是一个整数)
+```
+
+- 其次，auto 一般忽略掉 顶层const，同时保留底层const。比如当初始化一个指向常量的指针时。
+
+```
+const int ci=i, &cr=ci;
+auto b=ci; //b是一个整数(ci的顶层const特性被忽略掉了)
+auto c=cr; //c是一个整数(cr 是ci的别名，ci本身是一个顶层const)
+auto d=&i; //d是一个整型指针（整数的地址就是指向整型的指针）
+auto e=&ci; //e是一个指向整数常量的指针（对常量对象取地址是一种底层const）
+```
+
+//todo hard 不太懂，上例。
+
+如果希望推断出 auto 类型是一个顶层 const，需要明确指出：
+
+```
+const auto f=ci; //ci 的推演类型是 int， f是 const int
+```
+
+
+还可以将引用的类型设为auto，此时原来的初始化规则仍然适用:
+
+```
+auto &g=ci; //g是一个整形常量的引用，绑定到ci
+auto &h=42; //错误：不能为非常量引用绑定字面量
+const auto &j=42; //正确：可以为常量引用绑定字面量
+```
+
+
+- 设置一个类型为auto的引用时，初始值中的顶层常量属性仍然保留。
+- 如果给初始值绑定一个引用，则此时的常量就不是顶层常量了。
+
+//todo hard, 不懂上面这两句 P62
+
+
+
+
+要在一条语句中定义多个变量，切记：符号&和*只属于某个声明符，而非基本数据类型的一部分，因此初始值必须是同一种类型。
+
+```
+$ cat c3_auto.cpp
+#include<iostream>
+using namespace std;
+
+//使用auto初始化，初始值必须是同一种类型
+int main(){
+    int i=20, &r=i;
+    const int ci=i, &cr=ci;
+
+    auto k=ci, &l=i; //k 是整数，l是整型的引用
+    auto &m=ci, *p=&ci; //m是对整型常量的引用，p是指向整型常量的指针
+
+    //auto &n=i, *p2=&ci; // 错误：i的类型是int，而 &ci 的类型是 const int
+    //error: inconsistent deduction for ‘auto’: ‘int’ and then ‘const int’
+
+    return 0;
+}
+```
+
+
+
+
+
+
 
 
 
@@ -1148,7 +1223,107 @@ auto 一般忽略掉 顶层const。
 
 C++11新标准。
 
-//todo jump, P62
+- 目的：从表达式的类型推断要定义的变量的类型。
+- 编译器分析，但是不计算。
+
+```
+decltype (f()) sum=x; // sum 的类型就是函数 f 的返回值
+```
+
+- decltype 处理顶层const和引用的方式与auto不同。
+    * 如果 decltype 使用的表达式是一个变量，则 decltype 返回该变量的类型（包括顶层const 和 引用在内）
+
+```
+const int ci=0, &cj=ci;
+decltype(ci) x=0; //x 的类型是 const int
+decltype(cj) y=x; //y 的类型是 const int&, y绑定到变量x
+decltype(cj) z; //错误：z是一个引用，必须初始化
+```
+
+> 注意，引用从来都是作为所指对象的同义词出现，只有在 decltype 处是一个例外。
+
+
+
+#### decltype 和引用
+
+- 如果 decltype 使用的表达式不是一个变量，则 decltype 返回表达式结果对应的类型。
+- P120: 有些表达式将向 decltype 返回一个引用类型。
+    * 一般，这意味着该表达式的结果对象能作为一条赋值语句的左值。
+
+```
+//decltype 的结果可以使引用类型
+
+int i=42, *p=&i, &r=i;
+decltype(r+0) b; //正确：加法的结果是int，因此b是一个(未初始化的) int
+decltype(*p) c;  //错误: c是 int&, 必须初始化
+```
+
+> 如果表达式的内容是解引用操作，则 decltype 将得到引用类型。
+
+- 因为 解引用指针可以得到指针所指的对象，而且还能给这个对象赋值。
+- 因此，`decltype(*p) 的结果类型是 int&`，而非 int。
+
+```
+#include<iostream>
+using namespace std;
+
+//decltype 获得的是不是引用，怎么区分？
+// 能获得值，能修改值，则是引用，是引用就要初始化。
+
+int main(){
+    int i=42, *p=&i, &r=i;
+    decltype(r+0) b; //正确：加法的结果是int，因此b是一个(未初始化的) int
+    
+    //decltype(*p) c;  //错误: c是 int&, 必须初始化
+    // error: ‘c declared as reference but not initialized
+
+    b=20;
+    cout << b << endl;
+
+    return 0;
+}
+
+$ g++ c1_decltype.cpp 
+$ ./a.out 
+20
+```
+
+
+decltype 和 auto 的另一个重要区别是，decltype 的结果类型与表达式形式密切相关。
+
+- 对于 decltype 所用的表达式来说，如果变量名加上一对括号，则得到的类型与不加括号时会有不同。
+    * 如果使用不加括号的变量，则得到的类型就是该变量的类型；
+    * 如果变量加了一层或多层括号，则编译器会把它当成是表达式。 变量是一种可以作为赋值语句左值的特殊表达式，所以这样的decltype 就会得到引用类型：
+
+```
+#include<iostream>
+using namespace std;
+
+// 变量，加括号的变量，得到的类型是不同的
+int main(){
+    int i=10;
+
+    decltype(i) d; //正确，d是一个未初始化的 int
+    //decltype((i)) e; //错误，e是一个int&，必须初始化
+    //error: ‘e declared as reference but not initialized
+
+    int num=10;
+    decltype((i)) e=num; //绑定变量
+    e=200;
+    cout << num << endl;
+
+    return 0;
+}
+
+$ g++ c2_decltype2.cpp 
+$ ./a.out 
+200
+```
+
+> 切记： decltype( (variable) ) （注意是双层括号）的结果永远是引用，而 decltype(variable) 的结果只有当 variable 本身是引用时才是引用。
+
+
+
 
 
 

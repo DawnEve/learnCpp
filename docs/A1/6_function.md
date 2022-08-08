@@ -1871,6 +1871,56 @@ $ ./a.out
 
 #### 使用尾置返回类型
 
+- C++11 中，任何函数的定义都能使用 尾置返回(trailing return type) ，但是对于返回类型比较复杂的函数最有效，比如返回类型是数组的指针或数组的引用。
+- 尾置返回类型在形参后面，并以 -> 开头。
+- 为了表示函数真正的返回类型跟在形参列表之后，我们在本应该出现返回类型的地方放置一个auto
+
+```
+// func 接受一个int类型的实参，返回一个指针，该指针指向一个包含10个整数的数组
+auto func(int i) -> int (*)[10];
+```
+
+例:
+
+```
+#include<iostream>
+using namespace std;
+
+int arr[]={10,1,2,3,4};
+
+//C++ 尾置返回类型
+auto init(int i)-> int (*)[5]{
+    arr[i]=0;
+    return &arr;
+}
+
+int main(){
+    int arr2[]={10,20,30,40,50};
+    int (*p)[5] = init(4);
+
+    for(auto i : arr){
+        cout << i << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
+
+$ g++ c3_tailinig_return_type.cpp 
+$ ./a.out 
+10 1 2 3 0
+```
+
+
+
+
+#### 使用 decltype
+
+
+
+
+
+
 
 
 

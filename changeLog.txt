@@ -19,7 +19,9 @@ v0.6.9 add 多维数组;
 v0.7.0 add fn return
 v0.7.1 add 返回左值的函数
 v0.7.2 add 返回数组指针: int (*func(int i))[10];
-
+v0.7.3 add auto and decltype, P62
+## --> commit 
+## ==========> push to github: 
 
 
 
@@ -29,3 +31,4 @@ v0.7.2 add 返回数组指针: int (*func(int i))[10];
 ==> befor commit:
   update version in header of /README.md
   log current pages in /Z1/2_reading_logs.md
+  使用书本的印刷页码，不要使用pdf的页码。
