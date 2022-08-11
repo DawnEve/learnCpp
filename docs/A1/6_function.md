@@ -1916,8 +1916,142 @@ $ ./a.out
 
 #### 使用 decltype
 
+- 我们知道函数返回的指针将指向哪个数组，就可以使用 decltype  关键字声明返回类型。
+
+例: 函数根据参数i的值，返回2个已知数组中的某一个。
+
+```
+#include<iostream>
+using namespace std;
+
+//函数返回类型知道是某个数组，就可以使用 decltype 来定义返回类型
+int odd[]={1,3,5};
+int even[]={2,4,6};
+
+//返回一个指针，指向含有3个整数的数组
+decltype(odd) *choose(int i){ 
+    //注意：decltype 并不负责把数组类型转换成对应的指针，所以 decltype 的结果是个数组
+    // 想要返回指向数组的指针，还要在函数声明前加上*符号
+    return i %2 ? &odd : &even;
+}
+
+int main(){
+    decltype(odd) *arr1=choose(0);
+    decltype(odd) *arr2=choose(1);
+
+    cout << odd << endl;
+    cout << even << endl;
+
+    cout << arr1 << endl;
+    cout << arr2 << endl;
+
+    return 0;
+}
+
+$ g++ c4_return_decltype.cpp 
+wangjl@YStation:~/data/project/learnCpp/A1/6$ ./a.out 
+0x55740f429010
+0x55740f429020
+0x55740f429020
+0x55740f429010
+```
 
 
+练习1：编写一个函数声明，返回一个数组的引用，且该数组包含3个string对象。不要使用尾置返回类型、decltype或者类型别名。
+
+```
+#include<iostream>
+using namespace std;
+
+//返回数组引用的函数，该数组包含3个 string 对象
+string arr0[]={"nothing", "here", "now"};
+string arr1[]={"how", "are", "you"};
+
+//string (&getRef)(int index)[3]; //error: ‘getRef’ declared as function returning an array
+string (&getRef(int index))[3];
+
+int main(){
+    cout << arr0 << endl;
+    cout << arr1 << endl;
+
+    for(int i=0; i<2; i++){
+        cout << getRef(i) << "\t" << getRef(i)[0]  << endl;
+    }
+    return 0;
+}
+
+string (&getRef(int n))[3]{
+    if(n==0)
+        return arr0;
+    else
+        return arr1;
+}
+
+$ g++ c5_return_arr_ref.cpp 
+$ ./a.out 
+0x55a3cc9ca160
+0x55a3cc9ca1c0
+0x55a3cc9ca160  nothing
+0x55a3cc9ca1c0  how
+```
+
+
+
+练习2: 同上，尝试其他3种声明形式：类型别名、尾置返回类型、decltype关键字
+
+```
+#include<iostream>
+using namespace std;
+
+//返回数组引用的函数，该数组包含3个 string 对象
+
+string arr0[]={"nothing", "here", "now"};
+string arr1[]={"how", "are", "you"};
+
+//0.直接声明
+//string (&getRef)(int index)[3]; //error: ‘getRef’ declared as function returning an array
+//string (&getRef(int index))[3];
+
+//1. 类型别名
+//typedef string ref_str4[3];
+//using ref_str4 = string [3];
+
+//ref_str4 &getRef(int i);
+
+
+//2. 尾置返回类型
+//auto getRef(int i) -> string (&)[3];
+
+//3.decltype关键字
+decltype(arr0) &getRef(int i);
+
+int main(){
+    cout << 3 << endl; //显式表示变化
+    cout << arr0 << endl;
+    cout << arr1 << endl;
+
+    for(int i=0; i<2; i++){
+        cout << getRef(i) << "\t" << getRef(i)[0]  << endl;
+    }
+    return 0;
+}
+
+string (&getRef(int n))[3]{
+    if(n==0)
+        return arr0;
+    else
+        return arr1;
+}
+
+
+$ g++ c5_return_arr_ref2.cpp
+$ ./a.out 
+3
+0x55a6e6ad6160
+0x55a6e6ad61c0
+0x55a6e6ad6160  nothing
+0x55a6e6ad61c0  how
+```
 
 
 
@@ -1936,14 +2070,259 @@ $ ./a.out
 
 ## 6.4 函数重载
 
+- 函数名相同、参数列表不同，称为 重载函数(overloaded)
+- 编译器根据实参列表推断调用的哪个函数。
+- main 函数不能重载。
+
+#### 定义重载函数
+
+例: 一种数据库应用，根据名字、电话、账户号码等查找信息。
+
+```
+#include<iostream>
+using namespace std;
+
+struct Record{
+    char acount;
+    int phone;
+    string name;
+};
+
+Record arr[]={
+    {'a', 123, "Tom"},
+    {'b', 456, "Lily"},
+    {'c', 789, "Lilei"}
+};
+Record empty={'\0', 0, ""};
+
+//重载函数的声明
+Record lookup(const char&); //根据acount查找
+Record lookup(const int&); //根据phone查找
+Record lookup(const string&); //根据name查找
+
+void print(Record r){
+    cout << "struct Record: "<< r.acount << ", " << r.phone << ", " << r.name << endl;
+}
+
+
+int main(){
+    char acct='b';
+    int phone=123;
+    string name="Lilei";
+
+    Record r1=lookup(acct);
+    Record r2=lookup(phone);
+    Record r3=lookup(name);
+
+    print(r1);
+    print(r2);
+    print(r3);
+    return 0;
+}
+
+
+Record lookup(const char& c){
+    cout << ">lookup by account: char " << c << endl;
+    for(int i=0; i<3; i++){
+        if(arr[i].acount == c)
+            return arr[i];
+    }
+    return empty;
+}
+
+Record lookup(const int& n){
+    cout << ">lookup by phone: int " << n << endl;
+    for(int i=0; i<3; i++){
+        if(arr[i].phone == n)
+            return arr[i];
+    }
+    return empty;
+}
+
+Record lookup(const string& s){
+    cout << ">lookup by name: string " << s << endl;
+    for(int i=0; i<3; i++){
+        if(arr[i].name == s)
+            return arr[i];
+    }
+    return empty;
+}
+
+
+$ g++ d1_overloaded.cpp 
+$ ./a.out 
+>lookup by account: char b
+>lookup by phone: int 123
+>lookup by name: string Lilei
+struct Record: b, 456, Lily
+struct Record: a, 123, Tom
+struct Record: c, 789, Lilei
+```
+
+
+
+#### 判断2个形参的类型是否相等
+
+- 形参的名字可以忽略。
+
+
+#### 重载与const形参
+
+顶层const不影响传入函数的对象。
+
+//todo hard.
+
+
+```
+Record lookup(Phone);
+Record lookup(const Phone); //重新声明了 Record lookup(Phone)
+
+Record lookup(Phone *);
+Record lookup(Phone* const); //重新声明了 Record lookup(Phone *)
+```
+
+例1: 一个拥有顶层const的形参无法与另一个没有顶层const的形参区分开来
+
+```
+#include<iostream>
+using namespace std;
+
+int lookup(int);
+int lookup(const int); //重新声明了 int lookup(int)
+
+int lookup(int *);
+int lookup(int* const); //重新声明了 Record lookup(int *)
+
+
+int arr[]={10,11,12,30,14,50};
+
+int main(){
+    int a2=12;
+    int i2=lookup(a2);
+    cout << "index of " << a2 << " is " << i2 << endl;
+
+    return 0;
+}
+
+int lookup(int value){
+    for(int i=0; i<6; i++){
+        if(arr[i]==value)
+            return i;
+    }
+    return -1;
+}
+
+/* 声明不报错，但是定义时报错
+//error: redefinition of ‘int lookup(int)’
+int lookup(const int value){
+    return -1;
+}
+*/
+
+$ g++ d2_overload_const.cpp 
+$ ./a.out 
+index of 12 is 2
+```
+
+
+另一方面，如果形参是某种类型的指针或引用，则通过区分其指向的是常量对象还是非常量对象可以实现函数重载，此时的const是底层的。
+
+例2: 编译器可以根据实参是否是const调用哪个函数。
+
+- 因为const不能转为其他类型(P144)，所以我们只能把const对象传递给const形参。
+- 当传递非常量对象或 指向非常量对象的指针时，编译器会优先选用非常量版本的函数。
+
+```
+#include<iostream>
+using namespace std;
+
+// 如果参数是指针或引用，则通过区分其指向的是常量还是非常量对象，可以实现函数重载
+int lookup(int&);  //输入int的引用
+int lookup(const int&); //新函数，作用于常量引用
+
+int lookup(int *); //作用于指向int的指针
+int lookup(const int *); //作用于指向 const int 的指针
+
+int arr[]={10,11,12,30,14,50};
+
+int main(){
+    int a1=12, &r1=a1, *p1=&a1;
+    int i1=lookup(r1);
+    cout << "1 index of " << r1 << " is " << i1 << endl;
+
+    const int &r2=a1;
+    int i2=lookup(r2);
+    cout << "2 index of " << r2 << " is " << i2 << endl;
+
+    int i3=lookup(p1);
+    cout << "3 index of " << *p1 << " is " << i3 << endl;
+
+    const int *p2=&a1;
+    int i4=lookup(p2);
+    cout << "4 index of " << *p2 << " is " << i4 << endl;
+
+    return 0;
+}
+
+int lookup(int &r){
+    return -11;
+}
+
+int lookup(const int &r){
+    return -12;
+}
+
+
+int lookup(int *p){
+    for(int i=0; i<6; i++){
+        if(arr[i]==*p)
+            return i;
+    }
+    return -1;
+}
+
+int lookup(const int *p){
+    return -14;
+}
+
+
+$ g++ d2_overload_const2.cpp 
+$ ./a.out 
+1 index of 12 is -11
+2 index of 12 is -12
+3 index of 12 is 2
+4 index of 12 is -14
+```
+
+
+> 建议：何时不应该重载函数？
+
+- 函数重载减轻了我们起函数名字、记名字的负担，但是应该克制使用，只在确实相似的操作上使用。
+- 有些情况下，给函数起不同的名字更方便理解。
+
+例：几个负责移动光标的函数。
+
+```
+Screen& moveHome();
+Screen& moveAbs(int, int);
+Screen& moveRel(int, int, string direction);
+```
+
+上述函数如果都起名叫move，则丢失了很多名字带来的信息。尽管这些函数都是在移动光标，但是移动的方式却不同。
+
+```
+//移动光标到Home位置
+myScreen.moveHome(); //这种名字更容易理解，强烈推荐。
+myScreen.move();
+```
 
 
 
 
+#### const_cast 和 重载
 
 
-
-
+> const_cast: P145;
 
 
 
