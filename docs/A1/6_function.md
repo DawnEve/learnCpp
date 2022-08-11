@@ -2319,11 +2319,128 @@ myScreen.move();
 
 
 
-#### const_cast 和 重载
 
+#### const_cast 和 重载
 
 > const_cast: P145;
 
+```
+//比较2个string对象的长度，返回较短的那个引用
+const string & shorterString(const string &s1, const string &s2){
+    return s1.size() <= s2.size() ? s1 : s2;
+}
+```
+
+
+例: 版本1，实参是常量时，使用非常量引用接收报错。
+
+```
+#include<iostream>
+using namespace std;
+
+// 返回较短的字符串的引用
+// 当实参不是const时，返回的结果仍然是const string 的引用
+const string &shorterString(const string &s1, const string &s2){
+    return s1.size() <= s2.size() ? s1 : s2;
+}
+
+int main(){
+    string x1="hi", x2="hello";
+    //string &y1=shorterString(x1, x2);// 返回的y1指向哪里?
+    //error: binding reference of type ‘std::string&’ to ‘const string’
+    string y1=shorterString(x1, x2); // 相当于复制
+
+    const string &y2=shorterString(x1, x2); //返回的是引用，y2地址和x1一致：
+    cout << "&x1=" << &x1 << endl;
+    cout << "&y1=" << &y1 << endl; // 地址和x1不同
+    cout << "&y2=" << &y2 << endl;
+
+    y1="Hi"; //修改y1不影响原x1的值
+    cout << "x1=" << x1 << endl;
+    //y2="Hi"; // error: passing ‘const string’ 错误，不能使用const引用修改原值
+
+    return 0;
+}
+
+
+$ g++ d3_const_cast_overload.cpp 
+$ ./a.out 
+&x1=0x7ffed67f1d80
+&y1=0x7ffed67f1dc0
+&y2=0x7ffed67f1d80
+x1=hi
+```
+
+
+例2: 版本2，实参是常量时，使用非常量引用接收正常。
+
+- 先把实参强转为对 const 的引用，然后调用 shorterString 函数的 const 版本。
+- const 版本返回对 const string 的引用，这个引用事实上绑定在某个非常量实参上。再强转去掉const，转换为普通 string&，这显然是安全的。 
+
+```
+#include<iostream>
+using namespace std;
+
+// 返回较短的字符串的引用
+// 当实参不是const时，返回的结果仍然是const string 的引用
+const string &shorterString(const string &s1, const string &s2){
+    return s1.size() <= s2.size() ? s1 : s2;
+}
+
+//重构一个：当实参不是常量时，得到的结果也是一个普通的引用
+string &shorterString(string &s1, string &s2){
+    auto &r=shorterString( const_cast<const string&>(s1), 
+                           const_cast<const string&>(s2) );
+    return const_cast<string&>(r);
+}
+
+int main(){
+    string x1="hi", x2="hello";
+
+    //2. 当输入不是常量时，返回的也不是常量
+    string &y1=shorterString(x1, x2); //只有第一个函数时报错，加重载函数后就对了
+    cout << y1 << endl;
+
+    //查看地址
+    cout << "&x1: " << &x1 << endl;
+    cout << "&y1: " << &y1 << endl;
+
+    //那就可以修改值
+    y1="Hi!";
+    cout << x1 << endl;
+
+    return 0;
+}
+
+
+
+$ g++ d3_const_cast_overload2.cpp 
+$ ./a.out 
+hi
+&x1: 0x7ffe8083c400
+&y1: 0x7ffe8083c400
+Hi!
+```
+
+
+
+
+#### 调用重载的函数
+
+- 根据实参调用一组重载函数中的某个。 
+- 函数匹配 (function matching) 是值一个过程：把函数调用和一组重载函数中某一个关联起来，函数匹配的过程也叫做 重载确定(overload resolution)。
+    * 编译器把实参与重载集合中的每一个函数的形参进行比较，确定调用哪一个函数。
+
+
+- 参数数量不同、或类型不同，一般很容易确定。
+- 但是当参数类型可以互相转换(P141)时，就比较麻烦了。P217：编译器怎么处理存在类型转换的函数调用的。
+
+
+当调用重载时有三种可能的结果:
+
+- 编译器找到一个与实参 最佳匹配(best match) 的函数，并调用该函数的代码
+- 找不到，编译器发出无匹配(no match)的错误信息
+- 多于一个可以匹配，都不是最佳匹配，此时报错，称为 二义性调用(ambiguous call)
 
 
 
@@ -2331,6 +2448,66 @@ myScreen.move();
 
 
 
+### 重载与作用域
+
+- 内层中声明名字，将隐藏外层同名实体。不同作用域无法重载函数名。
+
+```
+#include<iostream>
+using namespace std;
+
+
+//不同作用域无法重载函数
+
+string read();
+void print(const string &);
+void print(double); //重载 print 函数
+
+void fooBar(int ival){
+    bool read=false; //内层作用域：隐藏了外层的read
+    //string s=read(); //错误：read是一个布尔值，不是函数
+    //error: ‘read’ cannot be used as a function
+
+    //不好的习惯：在局部作用域声明函数
+    void print(int); //新作用域：隐藏了之前的print，如果不声明，则最后一个 print(3.4) 输出 3.4；声明后则输出3
+
+    //print("Value: "); //错误，外部的 print(const string &); 被隐藏掉了
+    //error: invalid conversion from ‘const char*’ to ‘int’
+
+
+    print(ival); //ok: 当前作用域 print(int) 可见
+    print(3.14); //ok: 调用 print(int)，外部的 print(double) 被隐藏了
+}
+
+int main(){
+    fooBar(5);
+    return 0;
+}
+
+
+// 不能在函数内定义函数，不允许函数嵌套
+// https://cplusplus.com/forum/beginner/199701/
+void print(int x){
+    cout << "int " << x << endl; 
+}
+
+void print(const string &x){
+    cout << "const string &x=" << x << endl; 
+}
+
+void print(double x){
+    cout << "double x=" << x << endl; 
+}
+
+$ g++ d4_overload_scope.cpp 
+$ ./a.out 
+int 5
+int 3
+```
+
+> 在C++中，名字查找发生在类型检查之前。
+
+一旦在当前作用域中找到所需的名字，编译器就会忽略掉外层作用域中的同名实体。剩下的工作就是检查函数调用是否有效了。
 
 
 
@@ -2344,6 +2521,305 @@ myScreen.move();
 
 
 ## 6.5 特殊用途的语言特性
+
+
+三种函数相关的语言特性： 默认实参、内联函数、constexpr函数，以及程序调试过程中常用的一些功能。
+
+
+### 默认实参 (default argument)
+
+- 就是可以在定义时给参数默认值。调用时可以省略该参数，从而使用默认值。
+- 定义时一旦一个参数有默认值，它后面的形参都必须有默认值。
+- 调用时，只能省略尾部的若干有默认值的参数。
+
+```
+// 定义
+typedef string::size_type sz; //typedef 参见 2.5.1 P60
+string screen(sz ht=24, sz wid=80, char background=' ');
+
+//调用
+string window;
+window = screen();             // 等价于  screen(24, 80, ' ')
+window = screen(66);           // 等价于  screen(66, 80, ' ')
+window = screen(66, 256);      // 等价于  screen(66, 256, ' ')
+window = screen(66, 256, '#'); // 等价于  screen(66, 256, '#')
+
+window=screen(,, '?'); //错误：只能省略尾部的实参
+window=screen('?'); //调用 screen('?', 80, ' ') 
+// 最后一个虽不报错，但是不是想要的结果。'?' 对应十进制的63，所以把63传递给形参 height
+```
+
+
+设计参数列表时，把不怎么使用默认值的放前面，经常使用默认值的放后面。
+
+```
+#include<iostream>
+using namespace std;
+
+// 默认实参
+int increase(int x, int delta=1){
+    return x+delta;
+}
+
+int main(){
+    //调用
+    int a=10;
+    cout << increase(a) << endl;
+    cout << increase(a, 1) << endl;
+    cout << increase(a, 15) << endl;
+
+    return 0;
+}
+
+$ g++ d5_default_argument.cpp 
+$ ./a.out 
+11
+11
+25
+```
+
+
+
+#### 默认实参声明
+
+通常把函数声明放到头文件中，而且一个函数只声明一次，但多次声明同一个函数也是合法的。
+
+> 注意：给定的作用域中，一个形参只能赋予一次默认实参。
+
+- 也就是说后续的函数声明只能为没有默认值的形参添加默认实参
+- 而且右侧的所有形参都必须有默认值。
+
+```
+// 表示高度和宽度的没有默认值
+string screen(sz, sz, char=' ');
+string screen(sz, sz, char='#'); //错误：重复声明。不能修改已有的默认实参
+string screen(sz=24, sz=80, char); //正确：添加默认实参
+```
+
+> 通常，在函数声明中指定默认实参，并将该声明放在合适的头文件中。
+
+
+```
+#include<iostream>
+using namespace std;
+
+//默认实参只能声明一次
+int add(int, int, int z=10); //最后一个有默认实参
+// 形参的名字无关紧要
+int add(int, int y2=20, int ); //再次声明时，为没有默认值的提供默认值
+// 甚至不要形参名字，默认值只给类型
+int add(int = -12, int y3, int );
+
+int main(){
+    cout << add() << endl; //不要参数，全部使用默认值
+    cout << add(1) << endl;
+    cout << add(1, 100) << endl;
+    cout << add(1, 100, 300) << endl;
+    //cout << add(1, z=100) << endl; //error: ‘z was not declared in this scope
+
+    return 0;
+}
+
+//函数实现时，可以不管其他值
+int add(int x, int y, int z){
+    return x+y+z;
+}
+
+$ g++ d6_default_argument_decl.cpp 
+$ ./a.out 
+18
+31
+111
+401
+```
+
+
+
+
+#### 默认实参初始值
+
+局部变量不能作为默认实参。除此之外，只要表达式的类型能转为形参所需的类型，该表达式就能作为默认实参。
+
+```
+// wd/def/ht的声明必须出现在函数之外
+sz wd=80;
+char def=' ';
+sz ht();
+
+string screen(sz=ht(), sz=wd, char=def);
+string window = screen(); //调用 screen(ht(), 80, ' ');
+```
+
+用作默认实参的名字在函数声明所在的作用域内解析，而这些名字的求值过程发生在函数调用时。
+
+```
+void f2(){
+    def='*';  //改变默认值
+    sz wd=100; //隐藏了外层定义的wd，但是没有改变默认值
+    window = screen(); //调用 screen(ht(), 80, '*');
+}
+```
+
+- 在函数 f2() 内，改变 def 的默认值，则对screen 的调用将会传递这个更新过的值。
+- 另一方面，我们声明了一个局部变量用于隐藏外层的wd，但是该局部变量与传递给screen的默认实参没有任何关系。
+
+//todo 细微差异，重点
+
+
+例: 我的理解，解析就是绑定到某个实参的地址，求值，就是在调用的环境中按地址求值。
+
+```
+#include<iostream>
+using namespace std;
+
+// 默认实参是变量时，绑定是函数声明所在的环境，求值是函数调用所在的环境
+
+//函数声明
+int width=80;
+int height=200;
+char ch='#';
+void screen(int w=width, int h=height, char ch=ch){
+    cout << ">> w=" << w << ", h=" << h << ", ch=" << ch << endl;
+}
+
+void fn(){
+    screen();
+    //修改调用环境
+    width=8; //更新了外部变量width
+    int height=5; // 隐藏了外部变量，这个内部变量与screen函数默认实参没有关系了。
+    //height=500; //看声明和定义谁先出现，
+    //如果对height赋值先出现，则认为是外部变量；如果声明先出现，认为是局部新变量。
+
+    screen();
+}
+
+int main(){
+    fn();
+    return 0;
+}
+
+
+$ g++ d7_default_argument_bind_eval.cpp 
+$ ./a.out 
+>> w=80, h=200, ch=#
+>> w=8, h=200, ch=#
+```
+
+
+
+
+### 内联函数与 constexpr 函数
+
+把一些短小的操作定义成函数，有很多优点：
+
+- 容易阅读和理解
+- 不容易出错
+- 方便查找和修改
+- 代码复用
+
+缺点: 函数调用是有额外开销的。
+
+
+#### 内联函数可以避免函数调用的开销
+
+比较理想的选择是：
+- 在函数的返回类型前加上 `inline` 关键字即可将函数定义为内联函数(inline);
+- 调用内联函数: `cout << shorterString(s1, s2) << endl;`
+- 编译时会展开成如下形式: `cout << (s1.size() < s2.size() ? s1 : s2) << endl;`
+- 从而消除了运行函数 shorterString 时的开销。
+
+> 内联说明只是向编译器发出的请求，编译器可以忽略这个请求。
+
+
+```
+#include<iostream>
+using namespace std;
+
+// 内联函数
+inline const string &
+shorterString(const string &s1, const string &s2){
+    return s1.size() < s2.size() ? s1 : s2;
+}
+
+int main(){
+    string x1="hi", x2="hello";
+    cout << shorterString(x1, x2) << endl;
+
+    return 0;
+}
+
+$ g++ d8_inline.cpp 
+$ ./a.out 
+hi
+```
+
+- 内联函数适合优化规模小、流程直接、频繁使用的函数。很多编译器不支持内联递归函数，而且一个75行的大函数也不太可能在调用点内联的展开。
+
+
+例: 怎么证明是否内敛的展开了？ //todo 暂时不会 A1/6/d9_inline2.cpp 
+
+
+
+
+
+#### constexpr 函数
+
+是能用于常量表达式(P58, 2.4.4)的函数。
+
+函数的返回类型和所有形参都是字面值类型，而且函数体中必须有且只有一条return 语句:
+
+```
+constexpr int new_sz() { return 52;}
+constexpr int foo=new_sz(); //正确，foo是一个常量表达式
+```
+
+- 定义成无参数的形式。
+- constexpr 函数被隐式的定义为内联函数。
+- constexpr 函数内也可以包含其他语句，只要这些语句在运行时不执行任何操作即可。例如：空语句、类型别名、using声明。
+
+例: 也可以是有参数形式，并返回一个非常量
+
+```
+// 如果 arg 是常量表达式，则 scale(arg) 也是常量表达式
+constexpr size_t scale(size_t cnt){ return new_sz() * cnt;}
+```
+
+> 当函数的实参是常量表达式时，它的返回值也是常量表达式；反之则不然。
+
+```
+int arr[scale(2)]; //正确，scale(2) 是常量表达式。编译器用返回结果替换对scale 函数的调用
+int i=2; //i不是常量表达式
+int a2[scale(i)]; //错误：scale(i) 不是常量表达式
+```
+
+> constexpr 函数不一定返回常量表达式。
+
+
+
+
+#### 把内联函数和 constexpr 函数放在头文件中
+
+
+- 和其他函数不同，内联函数和 constexpr 函数可以在程序中多次定义。不过，多个定义必须完全一致。
+- 所以，这2类函数通常定义在头文件中
+
+
+
+
+
+
+
+### 6.5.3 调试帮助
+
+
+
+
+
+
+
+
+
+
 
 
 
