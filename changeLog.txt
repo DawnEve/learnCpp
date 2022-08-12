@@ -24,6 +24,7 @@ v0.7.4 add 函数重载 回顾 const_cast
 v0.7.5 add 默认实参, 内联函数 P215
     开始在本log行后记录页码
 v0.7.6 add assert, NDEBUG, 二义调用 P220
+v0.7.7 add 函数指针 P227
 ## --> commit 
 ## ==========> push to github: 
 

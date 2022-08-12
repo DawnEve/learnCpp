@@ -3111,36 +3111,81 @@ $ g++ d13_ambiguous2.cpp
 
 #### 函数匹配和 const 实参
 
-> Pdf246/864
+如果重载函数的区别在于
+
+- 他们的引用类型的形参是否引用了 const
+- 或指针类型的形参是否指向 const
+
+则调用发生时编译器根据实参是否常量类决定选择哪个函数。
+
+```
+void f3(int &); //函数的参数是 int 的引用
+void f3(const int &); //函数的参数是一个常量引用
+const int a=10;
+int b=20;
+
+f3(a); //调用 f3(const int &)
+f3(b); //调用 f3(int &)
+```
+
+- 第一个传入的是 const 类型实参，因为不能把普通变量绑定到 const 对象上，所以唯一可行的函数是常量引用作为形参的哪个函数。且该函数与实参精确匹配。
+- 第二个传入的是 非常量对象，则两个都是可行函数。而需要类型转换的就不算精确匹配。所以优先选用非常量版本的函数。
 
 
+例: 形参是常量引用和非常量引用。
 
+```
+#include<iostream>
+using namespace std;
 
+//形参有const的引用或指针
+void f3(int &){ cout << "int &" << endl;} //函数的参数是 int 的引用
+void f3(const int &){ cout << "const int &" << endl;} //函数的参数是一个常量引用
+const int a=10;
+int b=20;
 
+int main(){
+    f3(a); //调用 f3(const int &)
+    f3(b); //调用 f3(int &)
 
+    return 0;
+}
 
+$ g++ d14_para_const.cpp 
+$ ./a.out 
+const int &
+int &
+```
 
+例2: 形参是常量指针和非常量指针。
 
+```
+#include<iostream>
+using namespace std;
 
+//形参有const的常量或指针
+void f4(int *){ cout << "int *" << endl;} //函数的参数是指向 int 的指针
+void f4(const int *){ cout << "const int *" << endl;} //函数的参数是一个指向 常量int 的指针
 
+int a=10, b=20;
+const int *pa=&a;
+int *pb=&b;
 
+int main(){
+    f4(pa); //调用 f4(const int *)
+    f4(pb); //调用 f4(int *)
 
+    return 0;
+}
 
+$ g++ d15_para_const_ptr.cpp 
+$ ./a.out 
+const int *
+int *
+```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+- 实参是指向常量的指针，调用形参是 const int* 的函数；
+- 实参是指向非常量的指针，调用形参是普通指针的函数。
 
 
 
@@ -3153,6 +3198,313 @@ $ g++ d13_ambiguous2.cpp
 
 ## 6.7 函数指针
 
+函数指针，是一个指针，指向的是函数。
+
+- 函数指针指向某种特定类型。
+- 函数的类型由它的返回类型和形参类型共同决定，与函数名无关。
+
+```
+// 比较2个string对象的长度
+bool lengthCompare(const string &, const string &);
+```
+
+该函数的类型是 bool(const string&, const string &)。使用指针替换函数名，就声明了一个指向该函数的指针：
+
+```
+// pf指向一个函数，该函数的返回值是 bool 类型，形参是 2个 const string 的引用
+bool (*pf)(const string &, const string &); //未初始化
+```
+
+按结合性，从内向外分析:
+
+- (*pf) 表示pf是一个指针；
+- 右侧是形参列表，表示pf指向的是函数；
+- 左侧，函数的返回值是布尔值。
+
+> 注意: *pf 两端的圆括号不能省略。否则，pf2就是一个返回值为bool指针的函数: 
+
+```
+// 声明 pf2 为函数，返回值为 bool *
+bool *pf2(const string&, const string &);
+```
+
+
+#### 使用函数指针
+
+当我们把函数名作为一个值使用时，该函数自动转换成指针。
+
+把函数 lengthCompare 的地址赋值给pf:
+
+```
+pf = lengthCompare;  //pf 指向名为 lengthCompare 的函数
+pf2= &lengthCompare; //等价的赋值语句: 取地址符是可选的
+```
+
+可以直接使用指向函数的指针调用该函数，解引用是可选的:
+
+```
+bool b1=lengthCompare("hi", "hello"); //直接使用函数名
+bool b2= (*pf)("hi", "hello"); //解引用
+bool b3= pf("hi", "hello"); //不解引用，也可以
+```
+
+例1:
+
+```
+#include<iostream>
+using namespace std;
+
+//获取函数的指针
+// 比较2个string对象的长度
+bool lengthCompare(const string &s1, const string &s2){
+    return s1.size() > s2.size();
+}
+
+// pf指向一个函数，该函数的返回值是 bool 类型，形参是 2个 const string 的引用
+bool (*pf)(const string &, const string &); //未初始化
+bool (*pf2)(const string &, const string &) = &lengthCompare; //初始化
+
+int main(){
+    cout << (void *)lengthCompare << endl;
+    pf = lengthCompare;
+    //pf2= &lengthCompare; //取地址符是可选的
+    cout << (void *)pf << endl;
+    cout << (void *)pf2 << endl;
+
+    //2. 使用函数指针，无需提前解引用
+    bool b1=lengthCompare("hi", "hello"); //直接使用函数名
+    bool b2= (*pf)("hi", "hello"); //解引用
+    bool b3= pf("hi", "hello"); //不解引用，也可以
+    cout << "b1=" << b1 << endl;
+    cout << "b2=" << b2 << endl;
+    cout << "b3=" << b3 << endl;
+
+    return 0;
+}
+
+$ g++ e1_fun_ptr1.cpp 
+$ ./a.out 
+0x55d0990462c9
+0x55d0990462c9
+0x55d0990462c9
+b1=0
+b2=0
+b3=0
+```
+
+
+
+- 指向不同函数类型的指针之间不存在转换规则。
+- 我们可以为函数指针赋值 nullptr(P48, 2.3.2)，或者值为0的整型常量表达式，表示该指针没有指向任何一个函数。
+
+```
+string::size_type sumLength(const string&, const string&);
+bool cstringCompare(const char*, const char*);
+pf=0; //正确：pf不指向任何函数
+pf=sumLength; //错误：返回类型不匹配
+
+pf=cstringCompare; //错误：形参类型不匹配
+pf=lengthCompare; //正确：函数和指针的类型精确匹配
+```
+
+例2: 指针类型和函数的匹配，看形参列表和返回值。
+
+```
+#include<iostream>
+using namespace std;
+
+//函数指针，只识别形参和返回值，不识别函数名
+
+bool lengthCompare(const string &s1, const string &s2){
+    cout << __func__ << endl;
+    return s1.size() > s2.size();
+}
+
+bool cmpFirstString(const string &s1, const string &s2){
+    cout << __func__ << endl;
+    return s1[0] > s2[0];
+}
+
+int totalSize(const string &s1, const string &s2){
+    return s1.size() + s2.size();
+}
+
+bool (*pf)(const string&, const string &);
+
+int main(){
+    string x="hello", y="Anderson";
+    pf=lengthCompare;
+    cout << pf(x, y) << endl;
+
+    pf=&cmpFirstString;
+    cout << pf(x, y) << endl;
+
+    //pf=totalSize; 
+    //error: invalid conversion from ‘int (*)(const string&, const string&)’ to ‘bool (*)(const string&, const string&)’
+
+    return 0;
+}
+
+$ g++ e2_fun_ptr.cpp 
+wangjl@YStation:~/data/project/learnCpp/A1/6$ ./a.out 
+lengthCompare
+0
+cmpFirstString
+1
+```
+
+
+
+#### 重载函数的指针
+
+如果定义了重载函数，
+
+```
+void ff(int *);
+void ff(double);
+
+void (*pf1)(double) = ff; //pf1指向 ff(double);
+```
+
+编译器通过指针类型决定选用哪个函数，指针类型必须和重载函数中的某一个精确匹配。
+
+```
+void (*pf2)(int)=ff; //错误：没有一个ff与该形参列表精确匹配
+string (*pf3)(int *)=ff; //错误: ff和pf3的返回类型不匹配
+```
+
+
+
+#### 函数指针形参
+
+- 和数组类似(P193, 6.2.4)，虽然不能定义函数类型的形参，但是形参可以是指向函数的指针。
+- 此时，形参看起来是函数类型，实际上却是当成指针使用
+
+```
+// 第三个形参是函数类型，他会自动转换成指向函数的指针
+void useBigger(const string &s1, const sting &s2, 
+    void pf(const string&, const string&));
+
+//等价的声明：显式的将形参定义成指向函数的指针
+void useBigger(const string &s1, const sting &s2, 
+    void (*pf)(const string&, const string&));
+```
+
+可以直接把函数作为实参使用，此时它会自动转换成指针：
+
+```
+// 自动将函数 lengthCompare 转换成指向该函数的指针
+useBigger(s1, s2, lengthCompare);
+```
+
+例: 函数指针作为参数。
+
+```
+#include<iostream>
+using namespace std;
+
+//函数指针可以作为参数
+
+bool lengthCompare(const string &s1, const string &s2){
+    return s1.size() > s2.size();
+}
+
+bool lengthCompare2(const string &s1, const string &s2){
+    return s1.size() < s2.size(); //和上一个相反
+}
+
+const string &useBigger(const string &s1, const string &s2, 
+    bool (*pf)(const string&, const string&)){
+        return ( pf(s1, s2) ? s1 : s2 );
+}
+
+int main(){
+    string s1="hi", s2="hello";
+
+    //获取长的字符串
+    const string &x1=useBigger(s1, s2, lengthCompare);
+    cout << x1 << endl;
+    cout << &x1 << "\t" << &s2 << endl;
+
+    // 换一个比较函数
+    cout << useBigger(s1, s2, &lengthCompare2) << endl; //加&fn 是可选的
+
+    return 0;
+}
+
+$ g++ e3_fun_ptr_as_parameter.cpp 
+$ ./a.out 
+hello
+0x7fffd9874ba0  0x7fffd9874ba0
+hi
+```
+
+
+
+
+直接使用函数指针类型显得冗长而繁琐。类型别名(P60, 2.5.1) 和 decltype(P62, 2.5.3) 能让我们简化使用函数指针的代码:
+
+```
+//Func 和 Func2 是函数类型
+typedef bool Func(const string&, const string&); //形式1
+typedef decltype(lengthCompare) Func2; //等价形式
+
+// FuncP 和 FuncP2 是指向函数的指针
+typedef bool (*FuncP)(const string&, const string&);
+typedef decltype(lengthCompare) *FuncP2; //等价的类型
+```
+
+需要注意，decltype 返回函数类型，不会讲函数类型自动转换成指针类型。所以需要在前面加上*才能得到指针。
+
+```
+//useBigger 的等价声明，其中使用了类型别名
+void useBigger(const string&, const string&, Func); //编译器将函数名自动转为指针
+void useBigger(const string&, const string&, FuncP2); //直接传入指针
+```
+
+
+例: 函数指针作为参数，简化写法
+
+```
+#include<iostream>
+using namespace std;
+
+//函数指针可以作为参数，简化写法
+
+bool lengthCompare(const string &s1, const string &s2){
+    return s1.size() > s2.size();
+}
+
+bool lengthCompare2(const string &s1, const string &s2){
+    return s1.size() < s2.size(); //和上一个相反
+}
+
+//简化函数指针的写法
+typedef bool (*FunP)(const string&, const string&); //声明1
+typedef decltype(lengthCompare) *FuncP2; //声明2
+
+const string &useBigger(const string &s1, const string &s2, 
+    FuncP2 pf){ //最后一个参数简化了
+        return ( pf(s1, s2) ? s1 : s2 );
+}
+
+int main(){ //main函数没变
+    string s1="hi,", s2="hello";
+
+    // 获取长字符串
+    cout << useBigger(s1, s2, lengthCompare) << endl;
+
+    // 换一个比较函数: 获取短字符串
+    cout << useBigger(s1, s2, &lengthCompare2) << endl; //加&fn 是可选的
+
+    return 0;
+}
+
+$ g++ e4_fun_ptr_as_parameter_Sim.cpp 
+$ ./a.out 
+hello
+hi,
+```
 
 
 
@@ -3164,34 +3516,168 @@ $ g++ d13_ambiguous2.cpp
 
 
 
+#### 指向返回函数的指针
+
+- 和数组类似，函数不能返回函数，但是可以返回指向函数的指针。
+- 必须把返回类型写成指针形式。
+- 最简单的方式是使用类型别名
+
+```
+using F=int(int*, int); //F是函数类型，不是指针
+using pF=int(*)(int*, int); //pF是指针类型
+```
+
+其中我们使用类型别名(P60, 2.5.1) 将F定义成函数类型，将pF定义成指向函数的指针。
+
+> 和函数类型的形参不同，返回类型不会自动的转换成指针。必须显式的将返回类型指定为指针。
+
+```
+pF f1(int); //正确: pF是指向函数的指针，f1返回指向函数的指针
+F f1(int); //错误：F是函数类型，f1不能返回一个函数
+F *f1(int); //正确: 显式的指定返回类型是指向函数的指针
+```
+
+当然，我们也可以直接声明f1: `int (*f1(int))(int*, int);` 按结合性从内向外拆解理解:
+
+- f1(int) 说明f1是有形参列表的，f1是一个函数；
+- (*f1(int)) 前面加星号，说明返回一个指针；
+- 再看右侧，指针本身也包含形参列表，因此指针指向一个函数
+- 再看左侧，该函数的返回值是int
+
+
+还可以使用尾置返回类型的方式(P206, 6.3.3)，声明一个返回函数指针的函数: `auto f1(int) -> int(*)(int*, int);`
+
+
+例: 返回函数指针的函数，三种声明方式。
+
+```
+#include<iostream>
+using namespace std;
+
+//返回函数指针的函数：依据输入int的正负，返回一个指针，指向以下2个函数中的一个
+
+int getMax(int *p1, int *p2){
+    return *p1>*p2 ? *p1 : *p2;
+}
+
+int getMin(int *p1, int *p2){
+    return *p1<*p2 ? *p1 : *p2;
+}
+
+
+//method1 直接声明: 最难理解的形式
+int (*pf1(int n))(int*, int*){
+    if(n>0)
+        return &getMax;
+    else
+        return &getMin;
+}
+/*
+从内到外拆开理解
+* 最核心的 pf1(int n) 说明是一个函数，形参列表是 int n
+* 前面有星号，表示其返回值是一个指针
+* 看右侧：指向的函数的形参列表(int*, int*)
+* 看左侧：指向的函数的返回值是 int
+*/
+
+//method2: 使用类型别名
+using Fun = int(int*, int*); //函数类型
+using pFun = int(*)(int*, int*); //指向函数的指针
+
+Fun *pf2(int n){
+    if(n>0)
+        return &getMax;
+    else
+        return &getMin;
+}
+
+pFun pf2_(int n){
+    if(n>0)
+        return &getMax;
+    else
+        return &getMin;
+}
+
+//C风格的类型别名
+typedef int Fun2(int*, int*); //使用 typedef，函数类型
+typedef int (*pFun2)(int*, int*); //使用 typedef，函数类型，函数指针
+pFun2 pf2_2(int n){
+    if(n>0)
+        return &getMax;
+    else
+        return &getMin;
+}
+
+
+//medthod3: 尾置返回类型
+auto pf3(int n) -> int(*)(int *, int*){
+    if(n>0)
+        return &getMax;
+    else
+        return &getMin;
+}
+
+int main(){
+    int i=-2, j=500;
+    // test1
+    cout << ">> method1" << endl;
+    cout << pf1(1)(&i, &j) << endl;
+    cout << pf1(-5)(&i, &j) << endl;
+    // test2
+    cout << ">> method2" << endl;
+    cout << pf2(1)(&i, &j) << endl;
+    cout << pf2(-5)(&i, &j) << endl;
+
+    cout << pf2_(1)(&i, &j) << endl;
+    cout << pf2_(-5)(&i, &j) << endl;
+    
+    cout << pf2_2(1)(&i, &j) << endl;
+    cout << pf2_2(-5)(&i, &j) << endl;
+    // test3
+    cout << ">> method3" << endl;
+    cout << pf3(1)(&i, &j) << endl;
+    cout << pf3(-5)(&i, &j) << endl;
+
+    return 0;
+}
+
+$ g++ e5_return_fun_ptr.cpp 
+$ ./a.out 
+>> method1
+500
+-2
+>> method2
+500
+-2
+500
+-2
+500
+-2
+>> method3
+500
+-2
+```
+
+
+
+#### 将 auto 和 decltype 用于函数指针类型
+
+如果明确知道返回类型是哪一个，就可以使用 decltype 简化书写函数指针返回类型的过程。
+
+我们有2个函数，参数和返回类型相同。第三个函数接受一个string 参数，返回一个指针，指向前2个函数中的一个。
+
+```
+string::size_type sumLength(const string&, const string&);
+string::size_type largerLength(const string&, const string&);
+
+//根据其形参的取值，getFcn函数返回指向 sumLength 或 largerLength 的指针
+decltype(largerLength) *getFcn(const string&);
+```
+
+声明getFcn唯一要注意的点是：牢记 decltype 作用于某个函数，返回的是函数而非指针类型。需要显式的添加*表明返回的是指针，而不是函数本身。
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+> 2022.8.12 done;
