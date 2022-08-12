@@ -13,6 +13,7 @@
     * [4.表达式](A1/4_expression.md)
     * [5.语句](A1/5_flow_of_control.md)
     * [6.函数](A1/6_function.md)
+    * [7.类](A1/7_class.md)
 
 
 

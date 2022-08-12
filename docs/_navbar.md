@@ -1,5 +1,5 @@
 * [Basic](A1/1_start)
-* [Class](A2/1_readme)
+* [Class](A1/7_class)
 * Help
 	* [README](README)
 	* [Docsify Guid](A0/1_readme)
