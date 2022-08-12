@@ -2811,35 +2811,162 @@ int a2[scale(i)]; //错误：scale(i) 不是常量表达式
 
 ### 6.5.3 调试帮助
 
+类似头文件保护的技术(P67, 2.6.3)
+
+- 程序可以包含一些用于调试的代码，这些代码只在开发程序时使用。
+- 当准备发布时，先屏蔽掉这些代码。
+- 用到两项预处理功能: assert 和 NDEBUG
+
+
+#### assert 预处理宏
+
+预处理宏的行为，类似于内联函数。
+
+- assert 宏使用一个表达式作为它的条件: `assert(expr);`
+- 首先对expr 求值，如果是假(0)，assert 输出信息并终止程序的执行。如果为真(非0)，则assert什么也不做。
+
+
+- assert 宏定义在 cassert 头文件中。
+- 预处理名字由预处理器管理而不是编译器，所以不用提供using声明。也就是说使用 assert 而不是 std::assert。
+- 和预处理变量一样，宏名字在程序中必须唯一。
+- 一般地，不要使用 assert 作为变量、函数或者其他实体的名字，防止其他程序或库使用该名字，即使你没有引入 cassert 库。
+
+
+用途: assert 宏常用于检查“不能发生”的条件。比如单词长度必须大于某个阈值: `assert(word.size() > threshold);`
+
+```
+#include<iostream>
+#include<cassert>
+using namespace std;
+
+//assert 常用语检查不能发生的条件
+double divide(int x, int y){
+    assert(y!=0);
+    cout << ">> this line after asssert;" << endl;
+    return static_cast<double>(x) /y;
+}
+
+int main(){
+    cout << divide(10,3) << endl;
+    cout << divide(10,0) << endl;
+
+    return 0;
+}
+
+$ g++ d10_assert.cpp 
+$ ./a.out 
+>> this line after asssert;
+3.33333
+a.out: d10_assert.cpp:7: double divide(int, int): Assertion `y!=0' failed. #直接报错，不再执行 assert 后的语句
+Aborted (core dumped)
+```
 
 
 
 
 
+#### NDEBUG 预处理变量
+
+assert 的行为依赖于一个名叫 NDEBUG 的预处理器的状态。
+
+- 如果定义了 NDEBUG，则assert 什么也不做。默认没有定义 NDEBUG，此时，assert 执行运行时检查。
+- 可以使用 `#define NDEBUG` 关闭调试状态；
+- 也可以从编译命令上定义预处理变量 `g++ -D NDEBUG main.c`, 相当于在main.c文件的一开始写了 `#define NDEBUG`
 
 
+因为正式版时 assert 都是失效的，所以 assert 应该仅限于验证那些确实不可能发生的事情。
+
+- assert 当做一种调试辅助手段，而不能替代真正的运行时逻辑检查，也不能替代程序本身应该包含的错误检查。
+
+```
+$ g++ -D NDEBUG d10_assert.cpp #使用 -D NDEBUG 编译，使 assert 失效
+
+$ ./a.out 
+>> this line after asssert;
+3.33333
+>> this line after asssert;
+inf
+```
 
 
+- 除了用于assert之外，还可以使用 NDEBUG编写自己的条件调试代码。
+    * 如果NDEBUG未定义，将执行 #ifndef 和 #endif 之间的语句；
+    * 如果定义了 NDEBUG，这些代码将忽略掉
+
+```
+#include<iostream>
+using namespace std;
+
+//#define NDEBUG 使用这句定义，或者编译时参数 -D NDEBUG，都能使 #ifndef #endif之间的语句失效
+
+// NDEBUG 编写调试语句
+void print(const int ia[], size_t size){
+    #ifndef NDEBUG
+      // __func__ 是编译器定义的一个局部静态变量，用于存放函数的名字
+      cerr << __func__ << ": array size is " << size << endl;
+    #endif
+    cout << "from func: " << __func__ << endl;
+}
+
+int main(){
+    int arr[]={0,1,2,3}, size=sizeof(arr)/sizeof(int);
+    print(arr, size);
+    return 0;
+}
 
 
+$ g++ d11_NDEBUG.cpp 
+$ ./a.out 
+print: array size is 4  #多了这一行
+from func: print
+
+$ g++ -D NDEBUG d11_NDEBUG.cpp  #定义NDEBUG后就没了
+$ ./a.out 
+from func: print
+```
+
+> 变量 `__func__` 输出当前调试的函数名字。编译器为每个函数都定义了 `__func__`，它是 const char 的一个静态数组，用于存放函数的名字。
+
+- C++编译器还定义了另外4个对于程序调试很有用的名字：
+    * `__FILE__` 存放文件名的字符串字面量
+    * `__LINE__` 存放当前行号的整数型字面值
+    * `__TIME__` 存放文件编译时间的字符串字面值
+    * `__DATE__` 存放文件编译日期的字符串字面值
+- 可以将这些常量在错误消息中提供更多信息
+
+```
+#include<iostream>
+using namespace std;
+
+// 构建错误信息，使用编译器定义的字符串
+bool checkLength(string word, int threshold){
+    if(word.size() < threshold){
+        cerr << "Error: " << __FILE__ << ": in function " << __func__ 
+             << " at line " << __LINE__ << endl //竟然可以换行且继续输出
+             << "     Compiled on " << __DATE__ << " at " << __TIME__ << endl 
+             << "     Word read was \"" << word
+             << "\": Length too short" << endl;
+        return false;
+    }
+    return true;
+}
+
+int main(){
+    string s2="hi";
+    bool rs=checkLength(s2, 5);
+    cout << (rs? "ok":"not ok") << endl;
+
+    return 0;
+}
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+$ g++ d12_err_message_DIY.cpp 
+$ ./a.out 
+Error: d12_err_message_DIY.cpp: in function checkLength at line 8
+     Compiled on Aug 12 2022 at 10:38:13
+     Word read was "hi": Length too short
+not ok
+```
 
 
 
@@ -2850,6 +2977,150 @@ int a2[scale(i)]; //错误：scale(i) 不是常量表达式
 
 
 ## 6.6 函数匹配
+
+重载函数怎么匹配？
+
+
+```
+void f();
+void f(int);
+void f(int, int);
+void f(double, double=3.14);
+f(5.6); 调用 void f(double, double)
+```
+
+#### 确定候选函数和可行函数
+
+- 首先确定 候选函数 candidate function，具备2个条件: 与被调函数同名，且其声明在调用点可见。
+- 第二步考察提供的实参，从候选函数中选出能被这组实参调用的函数，被选出的叫 可行函数(viable function)。具备2个条件：实参数量相等，类型对应或能转换成形参类型。
+    * 如果函数定义的有默认实参，则传入的实参个数可以少于它实际使用的实参数量。
+- 如果没有找到可行函数，则编译器报错：无匹配函数。
+
+
+#### 寻找最佳匹配(如果有的话)
+
+实参和形参的类型越接近，匹配的越好。
+
+精确匹配比需要类型转换的匹配效果好。
+
+
+#### 含有多个形参的函数匹配
+
+`f(42, 2.56);` 怎么匹配呢？
+
+- 可行函数 f(int, int) 和 f(double, double)。
+- 如果有且只有一个函数满足下列条件，则匹配成功：
+    * 该函数的每个实参的匹配都不劣于其他可行函数需要的匹配
+    * 至少一个实参的匹配优于其他可行函数提供的匹配
+- 如果没有一个函数脱颖而出，则该调用是错误的。编译器将报错：二义性调用。
+
+
+解析:
+
+- 只考虑第一个参数，f(int, int) 优于 f(double, double);
+- 只考虑第二个参数，则 f(double, double) 优于 f(int, int).
+- 编译器会报错：二义性。整体无法判定孰优孰劣。
+
+
+```
+#include<iostream>
+using namespace std;
+
+//二义性调用
+void f();
+void f(int);
+void f(int, int);
+void f(double, double=3.14);
+
+int main(){
+    f(12, 2.5); //error: call of overloaded ‘f(int, double) is ambiguous
+    return 0;
+}
+
+void f(int, int){
+    cout << "int" << endl;
+}
+void f(double, double){
+    cout << "double" << endl;
+}
+
+$ g++ d13_ambiguous.cpp #编译报错：二义性。报错信息见代码注释
+```
+
+> 调用重载函数时应尽量避免强制类型转换。如果实际中确实需要强转，说明设计的形参集合不合理。
+
+
+
+
+
+
+### 6.6.1 实参类型转换
+
+编译器将实参类型转换到形参类型分了几个等级：
+
+1. 精确匹配，包括:
+    - 实参类型和形参类型相同
+    - 实参从数组类型或函数类型转换成对应的指针类型(P221, 6.7 函数指针)
+    - 向实参添加顶层const或者从实参中删除顶层const
+2. 通过const转换实现的匹配(P143, 4.11.2)
+3. 通过类型提升实现的匹配(P142, 4.11.1)
+4. 通过算术类型转换(P142, 4.11.1) 或指针转换(P143, 4.11.2) 实现的匹配
+5. 通过类类型转换实现的匹配(P514, 14.9)
+
+
+
+#### 需要类型提升和算术类型转换的匹配
+
+> 警告: 内置类型的提升和转换可能在函数匹配时产生意想不到的结果。设计良好的话，本例的形参很少出现。
+
+```
+void ff(int);
+void ff(short);
+ff('a'); //char 提升为 int；调用 ff(int)
+```
+
+所有算术类型转换的级别都一样: int 到 unsigned int 的转换 并不比 int 到 double 的转换级别高。
+
+```
+void f2(long);
+void f2(float);
+f2(3.14); //错误：二义性调用
+```
+
+字面量 3.14 是double类型，它能转换成 long 或 float。因为存在两种可能的算术类型转换，所以调用具有二义性。
+
+```
+#include<iostream>
+using namespace std;
+
+//二义性调用
+void f2(long){};
+void f2(float){};
+
+
+int main(){
+    f2(3.14); //error: call of overloaded ‘f2(double) is ambiguous
+    return 0;
+}
+
+$ g++ d13_ambiguous2.cpp
+```
+
+
+
+
+#### 函数匹配和 const 实参
+
+> Pdf246/864
+
+
+
+
+
+
+
+
+
 
 
 

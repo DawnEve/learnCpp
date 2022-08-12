@@ -35,7 +35,8 @@
 
 
 ## blogs cn
-- [](https://blog.csdn.net/qq_40873718/article/details/107899042)
+- [C++教程从入门到实战](https://blog.csdn.net/qq_40873718/article/details/107899042)
+- [数据结构:红黑树，哈希表...](https://www.cnblogs.com/wl-blog/p/15000897.html)
 
 
 ## Project
