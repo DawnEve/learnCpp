@@ -1,9 +1,11 @@
 # About this C++ note
 
-> version: 0.7.8
+> version: 0.7.9
 
 > [Book reading logs](Z1/2_reading_logs.md): by thread And/Or by date;
 
+
+C++ 包括三大部分：面向过程，面向对象，模板与泛型。面向过程是对C的妥协。真正要关注的精髓是面向对象和模板。
 
 
 ## Aims
