@@ -3,6 +3,13 @@ using namespace std;
 
 // Sales_data 类
 struct Sales_data{
+    //构造函数
+    Sales_data() = default;
+    Sales_data(const std::string &s): bookNo(s){}
+    Sales_data(const std::string &s, unsigned n, double p):
+        bookNo(s), units_sold(n), revenue(p*n) {}
+    Sales_data(std::istream &);
+
     //新成员：对于 Sales_data 对象的操作
     std::string isbn() const { return bookNo;}
     Sales_data &combine(const Sales_data &);
@@ -12,6 +19,11 @@ struct Sales_data{
     unsigned units_sold=0;
     double revenue=0.0;
 };
+
+//类外的构造函数，定义
+Sales_data::Sales_data(std::istream &is){
+    read(is, *this); //read函数的作用：从is中读取一条交易信息，存入this对象中
+}
 
 //Sales_data 的非成员接口函数
 Sales_data add(const Sales_data&, const Sales_data&);
@@ -51,6 +63,13 @@ Sales_data add(const Sales_data &lhs, const Sales_data &rhs){
     sum.combine(rhs); //把rhs的数据成员加到sum当中
     return sum;
 }
+
+
+/**
+ * @brief 测试每一个构造函数
+ * 
+ * @return int 
+ */
 
 int main(){
     Sales_data sd1, sd2;

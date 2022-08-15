@@ -605,7 +605,278 @@ Sales_data add(const Sales_data &lhs, const Sales_data &rhs){
 
 
 
-### 7.1.4 构造函数
+### 7.1.4 构造函数 constructor
+
+- 无论何时，只要类的对象被创建，就会执行构造函数。
+- 更多构造函数：P257, P551, P689, 第13章。
+
+
+- 构造函数的名字和类名相同，构造函数没有返回值。其他与普通函数类似。
+- 不同的构造函数必须在参数类型和参数数量上有区别。
+- 构造函数不能被声明成 const 的(P231, 7.1.2)。
+    * 我们创建类的一个const 对象时，直到构造函数完成初始化，对象才能真正取得其“常量”属性。
+    * 因此，构造函数在 const 对象的构造过程中可以向其写值。
+
+
+
+#### 合成的默认构造函数
+
+- 没有为对象提供初始值，则执行默认初始化(P40, 2.2.1)。
+- 类通过一个特殊的构造函数来控制默认初始化过程，该函数叫做 **默认构造函数 default constructor**，无须任何实参。
+
+- 默认构造函数的特殊性：如果没有显式的定义构造函数，则编译器就会隐式的声明一个默认构造函数。
+- 编译器创建的构造函数又称为 **合成的默认构造函数**。合成规则：
+    * 如果存在类内初始值(P64, 2.6.1)，用它来初始化
+    * 否则，默认初始化(P40, 2.2.1)该成员
+
+
+
+#### 某些类不能依赖于合成的默认构造函数
+
+合成默认构造函数只适合非常简单的类。
+
+对于一个普通类，必须定义它自己的默认构造函数，原因：
+
+1. 编译器只有发现不包含任何构造函数的情况下，才生成默认的构造函数；
+    * 如果一个类在某些情况下需要控制对象初始化，那么该类很可能在所有情况下都需要控制。
+2. 对于某些类，合成构造函数可能执行错误的操作。
+    * 包含内置类型或符合类型成员的类，应该在累的内部初始化这些成员。
+3. 编译器不能为某些类合成默认的构造函数。
+    * 类中包含其他类类型的成员，且该成员的类型没有默认构造函数。
+    * 其他无法生成正确的默认构造函数的情况(P449, 13.1.6)
+
+```
+$ cat a6_must_define_default_constructor.cpp
+#include<iostream>
+using namespace std;
+
+//必须自定义 默认构造函数的3个原因
+
+// 1.只有不包含任何构造函数的类，编译器才会合成默认构造函数
+class A{
+public:
+    A(int x){ cout << x << endl; }
+};
+
+// 2.默认初始化的值是不确定的
+class B{
+public:
+    void get(){
+        cout << x << " " << y << endl;
+    }
+private:
+    int x;
+    int y=25;
+};
+
+// 3. 编译器不能为某些类合成构造函数
+class Book{
+    public:
+    Book(int x){}
+};
+class C{
+    A a;
+};
+
+int main(){
+    //A a1; //error: no matching function for call to ‘A::A()’
+
+    B b2;
+    b2.get(); //1815907360 25
+
+    C c;
+
+    return 0;
+}
+```
+
+
+
+
+
+#### 定义 Sales_data 的构造函数
+
+将定义4个：
+
+- 一个 istream&，从中读取一条交易信息
+- 一个 const string&，表示ISBN编号；一个 unsigned，表示售出的图书数量；以及一个double，表示图书的售出价格。
+- 一个 const string&，表示ISBN编号；编译器将赋予其他成员默认值。
+- 一个空参数列表（即默认构造函数），有其他构造函数，则必须定义一个默认构造函数。
+
+```
+struct Sales_data{
+    //构造函数
+    Sales_data() = default;
+    Sales_data(const std::string &s): bookNo(s){}
+    Sales_data(const std::string &s, unsigned n, double p):
+        bookNo(s), units_sold(n), revenue(p*n) {}
+    Sales_data(std::istream &);
+    //... 其他不变
+}
+```
+
+
+#### = default 的含义
+
+`Sales_data() = default;` 是C++11新标准，生成 合成默认构造函数。
+
+- 其中 =default 既可以和声明一起出现在类内部，也可以作为定义出现在类的外部。
+- 在类内部，则默认构造函数是内联的；外部，默认不是内联的。
+
+
+```
+#include<iostream>
+using namespace std;
+
+// = default; 表示默认构造函数
+class A{
+    int i=10;
+    int j=5;
+public:
+    A(int x){ i=x;} //初始化 方法1
+    A(int x, int y): i(x), j(y){} //初始化 方法2
+    A() = default; //有其他构造函数，就必须有默认构造函数
+    void info(){
+        cout << "i=" << i << ", j=" << j << endl;
+    }
+};
+
+int main(){
+    A a1, a2(-6), a3(-1,1);
+    a1.info();
+    a2.info();
+    a3.info();
+
+    return 0;
+}
+
+$ g++ a7_constructor_equal_default.cpp 
+$ ./a.out 
+i=10, j=5
+i=-6, j=5
+i=-1, j=1
+```
+
+
+#### 构造函数初始值列表
+
+这两个构造函数，注意到参数列表后花括号前，出现了 冒号及冒号后的代码。
+
+```
+Sales_data(const std::string &s): bookNo(s){}
+Sales_data(const std::string &s, unsigned n, double p):
+    bookNo(s), units_sold(n), revenue(p*n) {}
+```
+
+- 花括号定义了（空的）函数体；
+- 新出现的冒号及冒号后的部分，叫做 **构造函数初始值列表**
+    * 负责为新创建的对象的一个或几个数据成员赋初始值。
+    * 格式是成员名字列表，后面跟着圆括号括起来的（或者花括号内的）成员初始值。
+    * 不同成员的初始化通过逗号分开
+
+
+- 第一个构造函数，只有一个参数，则没有明确值的成员变量，则按照合成默认构造函数相同的方式隐式初始化。
+    * 本例中使用类内初始值初始化。
+    * 等价于 `Sales_data(const std::string &s): bookNo(s), unites_sold(0), revenue(0){}`
+
+> 最佳实践：构造函数不应轻易覆盖掉类内的初始化值，除非新赋的值与原值不同。
+
+> 注意:上面2个构造函数的函数体都是空的。这是因为构造函数的唯一目的就是为数据成员赋初始值，一旦没有其他任务，则函数体就是空的。
+
+
+```
+#include<iostream>
+using namespace std;
+
+// 构造函数：初始值列表
+class Time{
+    string name="";
+    int time[3];
+public:
+    //参数列表后、函数体前：冒号以及冒号后的，类成员用逗号分割，括号(或花括号)内是形参。
+    Time(int h, int m, int s): time{h, m, s}{} 
+    Time(int h, int m, int s, const string &clockName): time{h, m, s}, name(clockName){}
+    void now(){
+        cout << "clockName:" << name << ",\ttime: ";
+        for(auto i : time)
+            cout << i << ":";
+        cout << endl;
+    }
+};
+
+int main(){
+    Time t1(5,10,3);
+    t1.now();
+
+    Time t2(5,10,3, "getUp");
+    t2.now();
+
+    return 0;
+}
+
+$ g++ a8_constructor_init.cpp 
+$ ./a.out 
+clockName:,     time: 5:10:3:
+clockName:getUp,        time: 5:10:3:
+```
+
+
+
+
+
+#### 在类的外部定义构造函数
+
+以 istream 为参数的构造函数:
+
+```
+//类外的构造函数，定义
+Sales_data::Sales_data(std::istream &is){
+    read(is, *this); //read函数的作用：从is中读取一条交易信息，存入this对象中
+}
+```
+- 构造函数没有返回类型。必须有类的命名空间 `className::className`, 又因为该函数与类名同名，所以是一个构造函数。
+- 该函数没有构造函数初始值列表，或者说它的构造函数初始值列表是空的（参数列表后、函数体之前是空的）。
+- 没有出现在构造函数初始值列表中的成员，通过类内初始值（如果存在的话）完成初始化，或者执行默认初始化。
+
+
+- 特别注意 read 的第二个参数是一个 Sales_data 对象的引用。
+- P232, 7.1.2 提到：使用this来把对象当成一个整体访问，而非直接访问对象的某个成员。
+    * 本例中，*this 将 this 对象作为实参传递给 read 函数。
+
+```
+#include<iostream>
+using namespace std;
+
+//类外定义构造函数：一个依赖输入的构造函数
+class A{
+    int i;
+public:
+    A()=default;
+    A(istream &); //构造函数，声明
+    void show(){
+        cout << "i=" << i << endl;
+    }
+};
+
+//构造函数，定义
+A::A(istream &is){
+    cout << "Please input the init value of i in class A: " << endl;
+    is >> i;
+}
+
+int main(){
+    A a1(cin);
+    a1.show();
+
+    return 0;
+}
+
+$ g++ a9_constructor_outside.cpp 
+$ ./a.out 
+Please input the init value of i in class A: 
+18
+i=18
+```
 
 
 
@@ -616,21 +887,43 @@ Sales_data add(const Sales_data &lhs, const Sales_data &rhs){
 
 
 
+### 7.1.5 拷贝、赋值和析构
+
+- 对象在几种情况下会拷贝：初始化变量，及以值的方式传递或返回一个对象时。(P187, P200)
+- 使用赋值运算符，发生赋值操作。(P129)
+- 对象不再存在时，执行销毁操作，
+    * 局部对象，创建它的块结束时被销毁
+    * 当 vector 对象(或数组) 销毁时，存储在其中的对象也会被销毁。
+
+不主动定义，则编译器会替我们合成。
+
+赋值语句: `total = trans; //处理下一本数的信息`
+
+其行为与下面的代码相同:
+
+```
+//Sales_data 的默认赋值操作等价于
+total.bookNo = trans.bookNo;
+total.units_sold = trans.units_sold;
+total.revenue = trans.revenue;
+```
+
+赋值的自定义方式见  第13章。
 
 
 
 
 
+#### 某些类不能依赖于合成的版本
+
+当类需要分配类对象之外的资源时，合成的版本经常失效。
+
+- 第12章分配和管理动态内存；
+- 13.1.4, P447: 管理动态内存的类通常不能依赖于上述合成版本。
 
 
-
-
-
-
-
-
-
-
+- 很多需要动态内存的类能（而且应该）使用vector对象或者string对象管理必要的存储空间。
+- 使用vector 或 string 的类能避免分配和释放内存带来的复杂性。
 
 
 
@@ -642,6 +935,20 @@ Sales_data add(const Sales_data &lhs, const Sales_data &rhs){
 
 
 ## 7.2 访问控制与封装
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
