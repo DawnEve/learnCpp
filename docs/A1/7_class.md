@@ -912,8 +912,6 @@ total.revenue = trans.revenue;
 
 
 
-
-
 #### 某些类不能依赖于合成的版本
 
 当类需要分配类对象之外的资源时，合成的版本经常失效。
@@ -926,6 +924,123 @@ total.revenue = trans.revenue;
 - 使用vector 或 string 的类能避免分配和释放内存带来的复杂性。
 
 
+例: 当前版本的书店类
+
+```
+#include<iostream>
+using namespace std;
+
+// Sales_data 类 v1
+struct Sales_data{
+
+    //构造函数
+    Sales_data() = default;
+    Sales_data(const std::string &s): bookNo(s){}
+    Sales_data(const std::string &s, unsigned n, double p):
+        bookNo(s), units_sold(n), revenue(p*n) {}
+    Sales_data(std::istream &);
+
+    //新成员：对于 Sales_data 对象的操作
+    std::string isbn() const { return bookNo;}
+    Sales_data &combine(const Sales_data &);
+
+    double avg_price() const; //最后的const 啥意思？
+    // 数据成员和 P64 相同
+    std::string bookNo;
+    unsigned units_sold=0;
+    double revenue=0.0;
+};
+
+//Sales_data 的非成员接口函数 声明放前面
+Sales_data add(const Sales_data&, const Sales_data&);
+std::ostream &print(std::ostream&, const Sales_data&);
+std::istream &read(std::istream&, Sales_data&);
+
+/******************* 函数(构造函数)的定义 ********************/
+
+//类外的构造函数，定义
+Sales_data::Sales_data(std::istream &is){
+    read(is, *this); //read函数的作用：从is中读取一条交易信息，存入this对象中
+}
+
+// 非成员函数的定义
+double Sales_data::avg_price() const {
+    if(units_sold)
+        return revenue / units_sold;
+    else 
+        return 0;
+}
+
+Sales_data& Sales_data::combine(const Sales_data &rhs){
+    units_sold += rhs.units_sold; //把rhs的成员加到this对象的成员上
+    revenue += rhs.revenue;
+    return *this; //返回调用该函数的对象
+}
+
+// 接口函数，但不是类成员
+
+// 输入的交易信息：ISBN、售出总数和售出价格
+istream &read(istream &is, Sales_data &item){
+    double price = 0;
+    is >> item.bookNo >> item.units_sold >> price;
+    item.revenue = price * item.units_sold;
+    return is;
+}
+ostream &print(ostream &os, const Sales_data &item){
+    os << item.isbn() << " " << item.units_sold << " "
+       << item.revenue << " " << item.avg_price();
+    return os;
+}
+
+Sales_data add(const Sales_data &lhs, const Sales_data &rhs){
+    Sales_data sum = lhs; //把lhs 的数据成员拷贝给sum
+    sum.combine(rhs); //把rhs的数据成员加到sum当中
+    return sum;
+}
+
+
+/**
+ * @brief 测试每一个构造函数
+ * 
+ * @return int 
+ */
+
+int main(){
+    Sales_data sd1, sd2;
+    // 测试IO
+    cout << "Please input info for sd1: bookNo units_sold price" << endl;
+    read(cin, sd1); //输入
+    cout << "Please input info for sd1: bookNo units_sold price" << endl;
+    read(cin, sd2); //输入
+    print(cout, sd1) << endl; //输出
+    print(cout, sd2) << endl; //输出
+
+    // 合并
+    sd1.combine(sd2);
+    print(cout, sd1) << endl; //输出
+    
+    return 0;
+}
+
+$ g++ a0_0_struct.cpp 
+
+$ ./a.out 
+Please input info for sd1: bookNo units_sold price
+A1 10 20.5
+Please input info for sd1: bookNo units_sold price
+A1 2 30.5
+A1 10 205 20.5
+A1 2 61 30.5
+A1 12 266 22.1667
+```
+
+
+
+
+
+
+
+
 
 
 
@@ -936,41 +1051,98 @@ total.revenue = trans.revenue;
 
 ## 7.2 访问控制与封装
 
+访问说明符 access specifiers 加强类的封装性：
+
+- public 后的整个程序内可被访问，public 定义的类的接口；
+    * 构造函数和部分成员函数(接口)
+- private 后的成员只能被本类访问，不能被使用该类的代码访问。private 部分封装了类的实现细节。
+    * 数据成员，作为实现的部分函数。
+
+一个类可以包含0个或多个访问说明符，而且对某个访问说明符出现的次数也没有严格限定。
+
+访问说明符的范围，到下一个访问说明符或者类定义结束为止。
+
+
+
+#### 使用 class 或 struct 关键字
+
+
+> class 或 struct 的唯一区别，是默认访问权限。 class 默认 private，struct 默认 public。
 
 
 
 
+### 7.2.1 友元
+
+- 既然 Sales_data 的数据成员是 private 的，非类成员函数(read/print/add)无法访问。
+- 解决方法，是让这些类或者函数变成类的友元(friend).
+    * 形式是：friend 关键字开头，在类中再添加一次函数声明；
+
+
+- 友元声明只能出现在类内部，但类内位置不限。推荐在类开始或结束位置集中声明友元。
+- 友元不是类成员，不受访问控制符的约束。
+
+
+```
+class Sales_data{
+// 为 Sales_data 的非成员函数所做的友元声明
+friend Sales_data add(const Sales_data&, const Sales_data&);
+friend std::istream &read(std::istream&, Sales_data&);
+friend std::ostream &print(std::ostream&, const Sales_data&);
+// ... 其他同上
+}
+```
+
+例:
+
+```
+#include<iostream>
+using namespace std;
+
+// 友元：能访问类私有成员的函数
+class A{
+private: //对友元没影响
+    friend void add(A &, int); //添加友元声明，就可以访问私有成员i了
+    int i=0;
+public:
+    void show(){
+        cout << i << endl;
+    }
+};
+
+void add(A &a, int x){
+    a.i += x;  //只有友元函数、类内成员函数才可以访问私有成员
+}
+
+int main(){
+    A a1;
+    add(a1, 25);
+    a1.show();
+
+    return 0;
+}
+
+$ g++ a10_friend.cpp 
+$ ./a.out
+25
+```
+
+
+> 关键概念：封装的益处
+
+- 确保用户代码不会无意间破坏封装对象的状态
+- 被封装的类的具体实现细节可以随时改变，而无需调整用户级别的代码。
+    * private 数据成员，好处是方便排错，把修改限定在有限的几个操作中。
+    * 尽管当类的定义改变时无需更改用户代码，但是使用了该类的源文件必须重新编译。
 
 
 
+#### 友元的声明
 
+- 友元函数要声明两次：一次在类内带friend前缀，获取访问权限；一次正常函数声明。
+- 正常函数声明一般和类声明放到一个头文件中。
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+> Note: 许多编译器并未强制限定友元函数必须在使用之前在类的外部声明。不过，最好先声明再使用，像普通函数一样。
 
 
 
@@ -985,6 +1157,419 @@ total.revenue = trans.revenue;
 
 
 ## 7.3 类的其他特性
+
+介绍上文没有体现出来的C++关于类的语法要点: 类型成员、类的成员的类内初始值、可变数据成员、内联成员函数、从成员函数返回*this、如何定义并使用类类型及友元类等。
+
+
+### 7.3.1 类成员再探
+
+定义2个相互关联的类：Screen 和 Window_mgr.
+
+#### 定义一个类型成员
+
+- Screen 表示一个窗口。包括一个string 成员，3个string::size_type 类型的成员，分别表示screen内容、光标位置、屏幕高和宽。
+- 类内除了定义数据、函数成员外，还可以定义某种类型在类内的别名。类内别名也受访问限制，可以是public或private中的一种:
+
+```
+class A{
+public:
+    typedef std::string::size_type pos;
+private:
+    pos cursor = 0;
+    pos height =0, width = 0;
+    std::string contents;
+};
+```
+
+注意两点：
+- 和前面一致，类别名可以使用 typedef 或 using 声明；
+- 用来定义类型的成员必须先定义后使用，这一点和普通类成员不同。因此类型成员一般定义在类开始的地方。
+
+```
+    //typedef std::string::size_type pos; //类别名
+    using pos = std::string::size_type; //等价声明，同上
+```
+
+
+#### Screen 类的成员函数
+
+添加构造函数：用户定义屏幕尺寸和内容；移动光标；读取给定位置的字符。
+
+```
+class Screen{
+public:
+    //类型别名，也受访问控制： public or private
+    //typedef std::string::size_type pos; //类别名
+    using pos = std::string::size_type; //等价声明，同上
+
+    // 构造函数
+    Screen() = default; //有其他构造函数，就必须定义默认构造函数
+    Screen(pos h, pos w, char c): height(h), width(w), contents( h * w, c){}
+
+    // 成员函数
+    char get() const { //读取光标处的字符，隐式内联
+        return contents[cursor]; 
+    }
+    inline char get(pos h, pos w) const ; //显式内联
+    Screen &move(pos r, pos c); //能在之后设置为内联
+
+private:
+    pos cursor = 0;
+    pos height =0, width = 0;
+    std::string contents;
+};
+```
+
+- 有其他构造函数，就必须自定义默认构造函数(P237, 7.1.4)
+- 第二个构造函数，隐式的使用了cursor 类内初始值。
+
+```
+// 回顾字符串内的初始化
+string test(5, 'c');
+cout << test << endl; //ccccc
+```
+
+
+#### 令成员作为内联函数
+
+- 规模较小的函数，适合设置为内联的。
+- 类内定义的成员函数是自动 inline 的(P213, 6.5.2)
+    * 因此 Screen 的 构造函数和返回光标所指字符的 get 函数默认是 inline 的。
+- 类内能用 inline 关键字显式声明内联成员函数，也可以在类外部用inline 修饰函数的定义。
+
+```
+inline                               //在函数的定义处指定 inline
+Screen& Screen::move(pos r, pos c){
+    pos row = r * width;
+    cursor = row + c; //位置 = 行*宽度 + 列
+    return *this; //以左值的形式返回对象
+}
+
+char Screen::get(pos r, pos c) const {  //在类内部声明为 inline
+    pos row = r * width; //计算 位置
+    return contents[row + c]; //返回给定列的字符
+}
+```
+
+我们无须在声明和定义处同时说明 inline ，虽然这么做是合法的。
+
+最好只在类外部定义的地方说明 inline，方便理解。
+
+> note: inline 成员函数应该与相应的类的定义在同一个头文件中。(在头文件中定义 inline 函数的原因见 P214, 6.5.2)
+
+
+
+
+
+#### 重载成员函数
+
+同一般函数的重载。
+
+测试刚才定义的2个get函数。
+
+```
+    Screen screen(10, 20, 'z');
+    char ch=screen.get(); //调用 Screen::get();
+    cout << ch << endl;
+
+    ch = screen.get(0,2); //调用 Sceen::get(pos, pos)
+    cout << ch << endl;
+```
+
+
+
+#### 可变数据成员 mutable
+
+- 我们想修改类的某个数据成员，即使在一个 const 成员函数内。
+    * 方法：在变量声明中添加 mutable 关键字。
+- 一个 **可变数据成员(mutable data member)** 永远不会是 const，即使它是 const 对象的成员。
+    * 因此，一个 const 成员函数，可以修改一个可变成员的值。
+
+例: 给 Screen 类添加一个可变成员 access_ctr，通过它最终每个Screen 成员被调用的次数:
+
+```
+#include<iostream>
+using namespace std;
+
+//可变成员，甚至可以被const函数修改
+class Screen{
+public:
+    void some_member() const;
+    void show(){ cout << access_ctr << endl;}
+    void show2(){ cout << access_ctr2 << endl;}
+private:
+    mutable size_t access_ctr=0; //即使一个const 对象内也能被修改
+    size_t access_ctr2=0; //没有 mutable 前缀
+};
+
+void Screen::some_member() const{
+    ++access_ctr; //保存一个计数器，用于记录函数被调用次数
+    //++access_ctr2; //error: increment of member ‘Screen::access_ctr2’ in read-only object
+}
+
+int main(){
+    Screen sc1;
+    sc1.some_member();
+    sc1.some_member();
+    sc1.show();
+    sc1.show2();
+
+    return 0;
+}
+
+$ g++ b2_mutable.cpp 
+$ ./a.out 
+2
+0
+```
+
+尽管 some_member 是一个 const 成员函数，它任然可以修改 access_ctr 的值。这就是可变成员。
+
+
+
+
+#### 类数据成员的初始值
+
+C++11标准中，最好的默认值是声明一个类内初始值。
+
+```
+class Window_mgr{
+private:
+    // 这个 Window_mgr 追踪的 Screen
+    // 默认情况下，一个 Window_mgr 包含一个标准尺寸的空白 Screen
+    std::vector<Screen> screens{Screen(24, 80, ' ')};
+};
+```
+
+> 提供一个类内初始化值时，必须以为符号=或者花括号形式表示。
+
+
+
+
+
+### 7.3.2 返回 *this 的成员函数
+
+添加函数，设置光标所在位置的字符、或任一给定位置的字符。
+
+```
+class Screen{
+public:
+    Screen &set(cahar);
+    Screen &set(pos, pos, cahar);
+    // 其他不变
+};
+
+inline Screen &Screen::set(char c){
+    contents[cursor]=c; // 设置当前光标所在位置的新值
+    return *this; //将this对象作为左值返回
+}
+inline Screen &Screen::set(pos r, pos c, char c){
+    contents[r*width + c]=c; // 设置当前光标所在位置的新值
+    return *this; //将this对象作为左值返回
+}
+```
+
+- 和move 操作一样，我们的set成员的返回值是调用set 的对象的引用(P232, 7.1.2)
+- 返回引用的函数是左值(P202, 6.3.2)，意味着返回的是对象本身而非副本。
+    * 可以做链式调用: `myScreen.move(4,0).set('#');`，等价于 `myScreen.move(4,0);  myScreen.set('#');`
+
+如果令move和set返回Screen 而非 Screen&，则上述语句的行为将大不相同:
+
+```
+// 如果 move 返回Screen而非 Screen&
+Screen temp=myScreen.move(4, 0); //对返回值进行拷贝
+temp.set('#'); //不会改变 myScreen的contents
+```
+
+- 加入我们当初定义的返回类型不是引用，则move返回值将是*this的副本(P201, 6.3.2);
+    * 因此调用set只能改变临时副本，而不能改变myScreen的值。
+
+
+```
+#include<iostream>
+using namespace std;
+
+//返回*this
+
+class A{
+private:
+    int i=0;
+public:
+    A()=default;
+    A(int x): i(x){}
+    A set(int x){ i = x; return *this;} //函数返回类型是本身，则发生复制
+    A &cset(int x){i = x; return *this;} //函数返回类型是引用，则返回的是本身，无复制
+    void show() const { cout << i << endl;}
+};
+
+
+int main(){
+    A a1(1), a2(2);
+    cout << "&a1:" << &a1 << ", &a2=" << &a2 << endl;
+    A b1=a1.set(10);
+    A &b2=a2.cset(20);
+    const A &b3=a2.cset(300);
+    a1.show();
+    a2.show();
+    b3.show();
+    //可见，cset 返回的是引用，其地址和a2一样
+    cout << "&b1:" << &b1 << ", &b2=" << &b2 <<", &b3=" << &b3 << endl;
+
+    return 0;
+}
+
+
+$ g++ b3_return_star_this.cpp 
+$ ./a.out 
+&a1:0x7ffe390e5cdc, &a2=0x7ffe390e5ce0
+10
+300
+300
+&b1:0x7ffe390e5ce4, &b2=0x7ffe390e5ce0, &b3=0x7ffe390e5ce0
+```
+
+
+
+#### 从 const 成员函数返回 *this
+
+- 添加一个 display 函数，负责打印 Screen 的内容。我们希望这个函数能和 move 和 set 链式调用，所以也要返回对执行它的对象的引用。
+- 打印不需要修改值，所以令display 为一个const成员，此时 this指向const的指针而*this是const对象。
+    * 由此推断，display的返回类型是 const Screen&。
+    * 如果真的令 display 返回一个const引用，则我们将无法后续链式调用。
+
+```
+Screen myScreen;
+//如果display返回常量引用，则调用set将引发错误
+myScreen.display().set('*');
+```
+即使 myScreen 是个非常量对象，对set的调用也无法通过编译。
+
+问题在于 display 返回的是const版本的常量引用，我们无权set一个常量对象。
+
+
+> Note: 一个const成员如果以引用的形式返回*this，那么它的返回类型将是常量引用。
+
+
+例: 链式调用版的 display() 函数
+
+```
+类内声明:
+    Screen &display(ostream&);
+
+类外定义:
+inline Screen &Screen::display(ostream &os){
+    os << this->contents << endl;
+    return *this; //将this对象作为左值返回
+}
+
+main中调用:
+Screen screen(4, 5, 'z');
+screen.display(cout).move(3,0).set('#').display(cout);
+```
+
+
+
+#### 基于 const 的重载
+
+- 因为非常量版本的函数对常量是不可用的，所以只能在一个常量对象上调用const成员函数。
+- 可以在非常量对象上调用常量、非常量版本，但是此时非常量版本是最佳匹配。
+
+例: 定义 do_display 私有函数，负责打印 Screen 的实际工作。 所有的 display 将调用该函数，返回返回执行操作的对象。
+
+```
+class Screen{
+public:
+    //根据对象是否const重载display函数
+    Screen &display(std::ostream &os){
+        cout << "version: non-const" << endl;
+        do_display(os);
+        return *this;
+    }
+    const Screen &display(std::ostream &os) const {
+        cout << "version: const" << endl;
+        do_display(os);
+        return *this;
+    }
+private:
+    //负责打印Screen 的内容
+    void do_display(std::ostream &os) const{
+        os << contents;
+    }
+    //其他不变
+};
+```
+
+在某个对象上调用display时，该对象是否const 决定了应该调用display 的哪个版本:
+
+```
+// 非常量版本:
+Screen screen(4, 5, 'z');
+screen.display(cout).move(3,0).set('#').display(cout);
+
+// 常量版本:
+const Screen blank(5,3, ' ');
+blank.display(cout); //调用常量版本
+```
+
+> 建议：对于公共代码使用私有功能函数。
+
+为什么费力气单独定义一个私有的 do_display 函数?
+
+- 一个基本的愿望是：避免多出使用同样的代码。
+- 预期随着类的发展，display函数会更加复杂，此时把相同的操作写到一处而不是两处更好管理
+- 我们可能在开发过程中给 do_display() 函数添加调试信息，而正式版会去掉。这样只有一处添加或删除更容易控制。
+- 这个额外的函数不会增加任何运行时开销，类内定义，隐式内联的。
+
+
+
+
+
+
+### 7.3.3 类类型
+
+即使2个类的成员完全相同，它们也是2个不同的类型。
+
+```
+class A{};
+class B{};
+A a1;
+B b1=a1; //错误: a1和b1的类型不同
+//error: conversion from ‘A’ to non-scalar type . requested
+```
+
+声明类类型时，class关键字可有可无:
+
+```
+Sales_data item1; //默认初始化 Sales_data 类型的对象
+class Sales_data item1; //等价，同上。从C继承来的
+```
+
+
+#### 类的声明
+
+不定义类，只声明:
+
+```
+class Screen;  //Screen 类的声明
+```
+
+这种声明叫前向声明(forwar declaration)。
+
+对于类类型，声明后、定义前是一个
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

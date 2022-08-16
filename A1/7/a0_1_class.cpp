@@ -1,8 +1,15 @@
 #include<iostream>
 using namespace std;
 
-// Sales_data 类
-struct Sales_data{
+// Sales_data 类 v2
+class Sales_data{
+// 为 Sales_data 的非成员函数所做的友元声明
+friend Sales_data add(const Sales_data&, const Sales_data&);
+friend std::istream &read(std::istream&, Sales_data&);
+friend std::ostream &print(std::ostream&, const Sales_data&);
+
+
+public:
     //构造函数
     Sales_data() = default;
     Sales_data(const std::string &s): bookNo(s){}
@@ -13,6 +20,7 @@ struct Sales_data{
     //新成员：对于 Sales_data 对象的操作
     std::string isbn() const { return bookNo;}
     Sales_data &combine(const Sales_data &);
+private:
     double avg_price() const; //最后的const 啥意思？
     // 数据成员和 P64 相同
     std::string bookNo;
@@ -20,16 +28,19 @@ struct Sales_data{
     double revenue=0.0;
 };
 
+//Sales_data 的非成员接口函数 声明放前面
+Sales_data add(const Sales_data&, const Sales_data&);
+std::ostream &print(std::ostream&, const Sales_data&);
+std::istream &read(std::istream&, Sales_data&);
+
+/******************* 函数(构造函数)的定义 ********************/
+
 //类外的构造函数，定义
 Sales_data::Sales_data(std::istream &is){
     read(is, *this); //read函数的作用：从is中读取一条交易信息，存入this对象中
 }
 
-//Sales_data 的非成员接口函数
-Sales_data add(const Sales_data&, const Sales_data&);
-std::ostream &print(std::ostream&, const Sales_data&);
-std::istream &read(std::istream&, Sales_data&);
-
+// 非成员函数的定义
 double Sales_data::avg_price() const {
     if(units_sold)
         return revenue / units_sold;
