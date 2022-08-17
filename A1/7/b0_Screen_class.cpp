@@ -5,6 +5,8 @@ using namespace std;
 /******* 声明 ******/
 
 class Screen{
+    //Window_mgr的成员可以访问Screen 类的私有成员
+    friend class Window_mgr;
 public:
     //类型别名，也受访问控制： public or private
     //typedef std::string::size_type pos; //类别名
@@ -12,7 +14,7 @@ public:
 
     // 构造函数
     Screen() = default; //有其他构造函数，就必须定义默认构造函数
-    Screen(pos h, pos w, char c): height(h), width(w), contents( h * w, c){}
+    Screen(pos h, pos w, char c): height(h), width(w), contents(h * w, c){}
 
     // 成员函数
     char get() const { //读取光标处的字符，隐式内联
@@ -51,7 +53,17 @@ private:
     }
 };
 
+
 class Window_mgr{
+public:
+    //窗口中每个屏幕的编号
+    using ScreenIndex = std::vector<Screen>::size_type;
+
+    //向窗口添加一个 Screen ，返回它的编号
+    ScreenIndex addScreen(const Screen &);
+
+    //按照编号将指定的Screen重置为空白
+    void clear(ScreenIndex);
 private:
     // 这个 Window_mgr 追踪的 Screen
     // 默认情况下，一个 Window_mgr 包含一个标准尺寸的空白 Screen
@@ -61,6 +73,20 @@ private:
 
 
 /******* 定义 ******/
+Window_mgr::ScreenIndex 
+Window_mgr::addScreen(const Screen &s){
+    screens.push_back(s);
+    return screens.size()-1;
+}
+
+
+void Window_mgr::clear(ScreenIndex i){
+    //s是一个 Screen 的引用，指向我们想清空的那个屏幕
+    Screen &s= screens[i];
+    //将那个Screen 设置为空白
+    s.contents = string(s.height * s.width, ' ');
+}
+
 inline                                 //在函数的定义处指定 inline
 Screen& Screen::move(pos r, pos c){
     pos row = r * width;
@@ -81,6 +107,7 @@ inline Screen &Screen::set(pos r, pos c, char ch){
     contents[r*width + c]=ch; // 设置当前光标所在位置的新值
     return *this; //将this对象作为左值返回
 }
+
 /*
 inline Screen &Screen::display(ostream &os){
     os << this->contents << endl;
@@ -103,7 +130,14 @@ int main(){
     const Screen blank(5,3, ' ');
     blank.display(cout).display(cout); //调用常量版本
 
+    //test clear
+    Window_mgr win_mgr;
+    win_mgr.clear(0);
 
+    //add screen
+    Screen screen2(4,5, '*');
+    win_mgr.addScreen(screen2);
+    
 
     //string test(5, 'c');
     //cout << test << endl;

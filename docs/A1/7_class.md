@@ -1555,45 +1555,391 @@ class Screen;  //Screen 类的声明
 
 这种声明叫前向声明(forwar declaration)。
 
-对于类类型，声明后、定义前是一个
+对于类类型，声明后、定义前是一个 **不完全类型(incomplete type)**: 是一个类类型，但是不清楚包含哪些成员。
+
+
+不完全类型只能用于以下情景：
+
+- 定义指向这种类型的指针或引用；
+- 声明（不能定义）以不完全类型作为参数或者返回类型的函数。
+
+
+P268， 7.6 描述一种例外情况：直到类被定义之后，数据成员才能被声明成这种类型。
+
+- 完成类的定义，然后编译器才能知道数据成员需要多少空间。
+- 因为只有类全部完成后类才算被定义，所以一个类的成员类型不能是该类自己。
+    * 但是可以是指向自身类型的引用或指针。
+
+```
+class Link_screen{
+    Screen window;
+    Link_screen *next;
+    Link_screen *prev;
+};
+```
+
+
+例: 定义2个类，X包含一个指向Y的指针，Y包含一个类型为X的对象
+
+```
+//不完全声明后，可以定义引用或指针
+class X;
+class Y;
+
+class X{
+    public:
+    Y *py;
+    int i=1;
+};
+
+class Y{
+    public:
+    X x;
+    int j=20;
+    X &get(){
+        return this->x;
+    }
+};
+```
 
 
 
 
 
 
+### 7.3.4 友元再探
+
+- 之前把3个普通函数定义为友元；
+- 类也可以把其他的类定义为友元。
+    * 也可以把其他类(已经定义过的)的成员函数定义为友元。
+- 友元函数还能定义在类的内部，是隐式内联的。
+
+
+#### 类之间的友元关系
+
+例：Window_mgr类的某些成员要访问它管理的 Screen 类的内部数据。Window_mgr::clear 函数负责把一个指定Screen 的内容设定为空白。
+
+- Window_mgr::clear 需要能访问 Screen 的私有数据成员；
+- 实现方法，就是 Screen 类把 Window_mgr 指定为它的友元
+
+```
+class Screen{
+    //Window_mgr的成员可以访问Screen 类的私有成员
+    friend class Window_mgr;
+    //Screen 类的其余部分
+};
+```
+
+
+如果一个类指定了友元类，则友元类的成员函数可以访问此类包括私有成员在内的所有成员。
+
+```
+class Window_mgr{
+public:
+    //窗口中每个屏幕的编号
+    using ScreenIndex = std::vector<Screen>::size_type;
+    //按照编号将指定的Screen重置为空白
+    void clear(ScreenIndex);
+private:
+    // 这个 Window_mgr 追踪的 Screen
+    // 默认情况下，一个 Window_mgr 包含一个标准尺寸的空白 Screen
+    std::vector<Screen> screens{Screen(24, 80, ' ')};
+};
+
+
+void Window_mgr::clear(ScreenIndex i){
+    //s是一个 Screen 的引用，指向我们想清空的那个屏幕
+    Screen &s= screens[i];
+    //将那个Screen 设置为空白
+    s.contents = string(s.height * s.width, ' ');
+}
+```
+
+- 解释:
+    * 首先定义s为screens vector 中第i个位置上的Screen 的引用
+    * 然后利用该Screen 的宽高计算出新的string 对象，令其含有若干空白字符。
+    * 最后，把空白字符赋值给该Screen对象的 contents 成员。
+- 如果 clear 不是 Screen 的友元，上面代码编译失败，因为clear将不能访问Screen的私有成员: height, width, contents。
+- 注意：友元没有传递性。如果 Window_mgr有它自己的友元，则这些友元并不会理所当然的具有访问 Screen 的特权。
+
+> Note: 每个类负责控制自己的友元类或友元函数。
+
+
+例1: 友元类可以访问其宿主类(?)的私有成员。
+
+```
+#include<iostream>
+using namespace std;
+
+//A是B的友元类，则A能访问B的私有成员
+class A;
+class B;
+class C;
+
+class B{
+    //声明B类的友元类：包括A
+    friend class A;
+public:
+    void show(){ cout << "A.x=" << x << endl; }
+private:
+    int x=2;
+};
+
+class C{
+public:
+    void show(){ cout << "C.x=" << x << endl; }
+private:
+    int x=3;
+};
+
+class A{
+public:
+    void showB(B &b){ 
+        b.show(); 
+        cout << b.x << endl; //B和C的唯一区别，就是B的友元包括A，所以可以在A中访问B的私有成员。
+    }
+    void showC(C &c){ 
+        c.show(); 
+        //cout << c.x << endl; //error: ‘int C::x is private within this context
+    }
+};
+
+int main(){
+    A a;
+    B b;
+    C c;
+    a.showB(b);
+    a.showC(c);
+
+    return 0;
+}
+
+$ g++ b6_friend_class.cpp 
+$ ./a.out 
+A.x=2
+2
+C.x=3
+```
+
+例2: 友元不具有传递性。
+
+```
+#include<iostream>
+using namespace std;
+
+//A是B的友元，B是C的友元，则A不能访问C的私有成员。
+class A;
+class B;
+
+class C{
+    friend class B; //B是C的友元类，B能访问C的私有成员
+    int x=3;
+};
+
+class B{
+    friend class A; //A是B的友元类, A能访问B的私有成员
+    int x=2;
+public:
+    void showC(C &c){
+        cout << c.x << endl; //在B中访问C的私有成员
+    }
+};
+
+class A{
+    int x=1;
+public:
+    void showB(B &b){
+        cout << b.x << endl; //在A中访问B的私有成员
+    }
+    void showC(C &c){
+        //cout << c.x << endl; //在A中 不能 访问C的私有成员
+        // error: ‘int C::x is private within this context
+    }
+};
+
+int main(){
+    A a;
+    B b;
+    C c;
+    b.showC(c);
+
+    a.showB(b);
+    //a.showC(c);
+
+    return 0;
+}
+
+$ g++ b7_friend_no_pass.cpp 
+$ ./a.out 
+3
+2
+```
 
 
 
 
 
+#### 令成员函数作为友元
+
+更细的粒度。
+
+例: Screen 仅为 Window_mgr::clear 提供访问权限。
+
+当把一个成员函数声明声明为友元时，必须明确该函数属于哪个类。
+
+```
+class Screen{
+    // Window_mgr::clear 必须在 Screen 类之前声明
+    friend void Window_mgr::clear(ScreenIndex);
+    //Screen 类的其余部分
+};
+```
+
+声明类的成员函数为友元，需要特别注意程序结构，以满足声明、定义的彼此依赖关系。
+
+- 首先定义 Window_mgr 类，其中声明 clear 函数，但是不能定义它。
+    * 在 clear 使用 Screen 的成员之前必须声明 Screen
+- 然后定义Screen类，包括对于clear的友元声明
+- 最后定义clear，此时它才可以使用Screen的成员。
+
+例: 
+
+```
+#include<iostream>
+#include<vector>
+using namespace std;
+
+//声明 Window_mgr::clear函数 为 Screen 类的友元，需要注意程序结构
+//1. 声明Screen类。定义 Window_mgr 类，声明clear函数(不能定义，因为还没有Screen类)
+class Screen;
+
+class Window_mgr{
+public:
+    void clear(int x);
+    Window_mgr& push(Screen);
+
+    Screen &get(int i){
+        return screens[i];
+    }
+private:
+    vector<Screen> screens;
+};
+
+//2. 定义Screen类，包括对clear的友元声明
+class Screen{
+    friend void Window_mgr::clear(int);
+public:
+    Screen(char ch){
+        contents = string(10, ch);
+    }
+    void print(string s=""){ cout << s << contents << endl;}
+private:
+    string contents; //(10, '*');
+};
+
+//3. 最后定义Window_mgr::clear函数
+void Window_mgr::clear(int x){
+    Screen &s = screens[x];
+    s.contents="";
+}
+
+Window_mgr& Window_mgr::push(Screen s1){
+    screens.push_back(s1);
+    return *this;
+}
+
+int main(){
+    Window_mgr win_mgr;
+    Screen scr1('#'), scr2('+');
+    win_mgr.push(scr1).push(scr2);
+    //查看
+    win_mgr.get(0).print("1:");
+    win_mgr.get(1).print("2:");
+
+    //获取第0个
+    Screen &cscr1 = win_mgr.get(0);
+    cscr1.print("b 1:");
+    //清空 下标是0的内容
+    win_mgr.clear(0);
+    cscr1.print("a 1:");
+
+    //再次查看
+    win_mgr.get(0).print("1:");
+    win_mgr.get(1).print("2:");
+
+    return 0;
+}
+
+$ g++ b8_friend_use_fn_in_class.cpp 
+$ ./a.out 
+1:##########
+2:++++++++++
+b 1:##########
+a 1:
+1:
+2:++++++++++
+```
 
 
 
+#### 函数重载与友元
+
+如果一个类想把一组重载函数都声明为它的友元，必须一一声明。
+
+```
+// 重载 storeOn 函数
+extern std::ostream& storOn(std::ostream &, Screen &);
+extern BitMap& storeOn(BitMap &, Screen &);
+class Screen{
+    // storeOn 的 ostream 版本能访问 Screen 对象的私有成员
+    friend std::ostream & storeOn(std::ostream &, Screen &);
+    // ... Screen 函数其余部分
+};
+```
+
+上述声明，接收 BitMap&作为参数的版本不能访问 Screen 的私有成员。
 
 
 
+#### 友元声明与作用域
 
+- 类和非成员函数的声明不是必须在它们的友元声明前。一个名字第一次出现在一个友元声明中时，我们隐式的假定该名字在当前作用域是可见的。然而，友元本身不一定声明在当前作用域中(P241, 7.2.1)。
+- 即使在类内定义该函数，也要在类的外部提供声明从而使函数可见。
+    * 即使仅仅用声明友元的类的成员调用该友元函数，该函数也必须是被声明过的。
+    * 友元声明不能代替函数声明，它们是相互独立的。
 
+```
+#include<iostream>
+using namespace std;
 
+//友元声明不能代替函数声明，它们是相互独立的
 
+class X{
+public:
+    friend void f(){ cout << "f()" << endl; }; //友元函数可以定义在类内部
+    //X(){ f(); } //错误：f还没有被声明
+    // error: ‘f was not declared in this scope
+    void g();
+    void h();
+};
 
+//void X::g(){ return f();} //错误: f还没有被声明
+//error: ‘f was not declared in this scope
 
+void f(); //函数声明
+void X::h(){ return f();} //正确: 现在f的声明在作用域中可见了
 
+int main(){
+    X x;
+    x.h();
+}
 
+$ g++ b9_friend_decl_must.cpp 
+$ ./a.out 
+f()
+```
 
-
-
-
-
-
-
-
-
-
-
-
-
+> 友元的声明仅仅是可见性，而函数声明则是必须的，是影响作用域内是否可见的。
 
 
 
@@ -1607,6 +1953,84 @@ class Screen;  //Screen 类的声明
 
 ## 7.4 类的作用域
 
+- 每个类都会定义它自己的作用域。
+- 类的作用域外，普通成员只能由对象、引用或者指针使用成员访问运算符来访问。
+- 对于类类型成员使用作用域运算符访问。
+
+```
+Screen::pos ht=24, wd=80; //使用 Screen 定义的pos类型
+Screen scr(ht, wd, ' ');
+Screen *p = &scr;
+char c= scr.get(); //访问scr对象的get成员
+c= p->get();       //访问p所指对象的get成员
+```
+
+
+#### 作用域和定义在类外部的成员
+
+- 类是一个作用域，所以类外访问必须提供类名和成员名字。
+- 一旦遇到类名，则其余部分就是类的作用域之内了，这里剩余部分包括参数列表、函数体。
+
+例: Window_mgr 类的clear成员(P251, 7.3.4)，该函数的参数用到了 Window_mgr 类定义的一种类型。
+
+不必再说明 ScreenIndex 是 Window_mgr 类定义的。编译器也知道 screens 也是 Window_mgr 类定义的。
+
+```
+void Window_mgr::clear(ScreenIndex i){
+    Screen &s = screens[i];
+    s.contents = string(s.height * s.width, ' ');
+}
+```
+
+函数的返回值通常在函数名之前。因此定义在外部的类成员函数，返回类型中使用的名字都位于类的作用域之外。
+
+例: 添加 Window_mgr::addScreen 函数，负责向显示器添加一个新的屏幕，返回类型是 ScreenIndex，用户可以通过它定位到指定的Screen。
+
+```
+Class Window_mgr{
+public:
+    //向窗口添加一个 Screen ，返回它的编号
+    ScreenIndex addScreen(const Screen &);
+    //其他成员不变
+};
+
+//处理返回类型，之后我们才进入 Window_mgr 的作用域
+Window_mgr::ScreenIndex 
+Window_mgr::addScreen(const Screen &s){
+    screens.push_back(s);
+    return screens.size()-1;
+}
+```
+
+返回类型出现在类名之前，事实上位于 Window_mgr 类的作用域之外。必须指定类名作用域。
+
+```
+#include<iostream>
+using namespace std;
+
+//返回类内定义的类型别名，作用域范围处理
+class A{
+public:
+    using pos = int;
+    pos &get();
+private:
+    pos x=8;
+};
+
+A::pos &A::get(){
+    return x;
+}
+
+int main(){
+    A a;
+    cout << a.get() << endl;
+    return 0;
+}
+
+$ g++ b10_typedef_in_class_return.cpp 
+$ ./a.out 
+8
+```
 
 
 
@@ -1615,20 +2039,299 @@ class Screen;  //Screen 类的声明
 
 
 
+### 7.4.1 名字查找与类的作用域
+
+名字查找(name lookup)寻找与所用名字最匹配的声明的过程：
+
+- 名字所在块中寻找其声明语句，只考虑在名字的使用前出现的声明；
+- 如果没找到，继续查找外层作用域
+- 如果最终没有找到匹配的声明，则程序报错。
+
+定义在类内部的成员函数，解析过程有所区别：
+
+- 首先，编译成员的声明
+- 直到类全部可见后才编译函数体。
+
+> Note: 编译器处理完类的全部声明后才会处理成员函数的定义。
+
+- 按照2阶段处理模式，成员函数直到整个类可见后才被处理，所以它能使用类中定义的任何名字。
+- 如果成员声明和函数的定义是同时处理的，则我们将不得不在成员函数中只使用已经出现的名字。
+
+
+
+
+#### 用于类成员声明的名字查找
+
+- 两阶段处理只适用于成员函数内使用的名字。
+- 声明中使用的名字，包括返回类型或者参数列表中使用的名字，都必须在使用前确保可见。
+    * 如果某个成员的声明中出现了尚未出现的名字，则编译器将会在定义该类的作用域中继续查找。
+
+```
+typedef double Money;
+string bal;
+class Account {
+public:
+    Money balance(){ return bal; }
+private:
+    Money bal;
+}
+```
+
+当编译器看到 balance函数声明语句时，它将在 Account 类的范围内寻找 Money 的声明。编译器只考虑 Account 中在使用 Money 前出现的声明，因为没找到，所以到 Account 的外层作用域中查找。
+
+- 本例中，编译器会找到 Money 的 typedef 语句，该类型被用作 balance 函数的返回类型和数据成员bal的类型。
+- balance 函数体在整个类可见后才被处理，因此该函数 return 语句返回名为 bal 的成员，而非外层作用域的 string 对象。
+
+
+例:
+
+```
+#include<iostream>
+using namespace std;
+
+//用于类成员声明的名字查找
+typedef double Money;
+string bal="outside";
+
+class Account {
+public:
+    Money balance(){ return bal; }
+private:
+    Money bal=3.14;
+};
+
+int main(){
+    Account act;
+    cout << act.balance() << endl;
+
+    return 0;
+}
+
+$ g++ b11_delc_of_method_lookup.cpp 
+$ ./a.out 
+3.14
+```
+
+注意：返回值 bal 是哪一个？虽然它出现的早，但是类内名字扫描完才处理函数体，所以类内定义的同名 bal 隐藏了类外定义的 bal，函数返回的是类内定义的 bal。
+
+
+
+
+#### 类型名要特殊处理
+
+一般，内层作用用可以重新定义外层作用域中出现过的名字，即使该名字在内层作用域中使用过(??)
+
+例1: 内层重新定义外层出现过、内层使用过的名字。
+
+```
+#include<iostream>
+using namespace std;
+
+//
+string food="rice";
+
+int main(){
+    food += " is good";
+    cout << food << endl;
+
+    string food = "corn"; //重新定义外层定义、内层使用过的名字
+    cout << food << endl;
+    return 0;
+}
+
+$ g++ b12_redefine_name_used_from_out.cpp 
+$ ./a.out 
+rice is good
+corn
+```
+
+
+- 但是，在类中，如果成员使用了外层的某个名字，且该名字代表一种类型，则类内不能在之后重新定义该名字。
+
+```
+#include<iostream>
+using namespace std;
+
+typedef double Money;
+class Account{
+public:
+    Money balance(){ return bal; } //使用外层作用域的 Money，且Money表示类型
+    //typedef double Money; //错误: 不能重新定义 Money
+    //error: declaration of ‘typedef double Account::Money’ changes meaning of ‘Money’
+private:
+    Money bal=10;
+};
+
+int main(){
+    Account act;
+    cout << act.balance() << endl;
+
+    return 0;
+}
+
+$ g++ b13_typedef_no_re_in_class.cpp 
+$ ./a.out 
+10
+```
+
+注意：即使 Account 类内定义的 Money 类型与外部作用域一致，上述代码依旧报错。（有些编译器忽略）
+
+> Tip: 类型名的定义通常出现在类的开始，这样确保所有使用该类型的成员都出现在类型名的定义之后。
+
+
+
+
+#### 成员定义中的普通块作用域的名字查找
+
+成员函数中使用的名字按照如下方式解析:
+
+- 首先是成员函数内查找。函数使用前出现的声明才被考虑；
+- 成员函数内没有，则找类内查找，类内所有成员都考虑，不管声明的先后；
+- 类内没有该名字的声明，则在成员函数定义之前的作用域内继续查找。
+
+一般，不建议使用其他成员的名字作为某个成员函数的参数。为了演示，本例违反了这一约定:
+
+```
+// 注意：这段代码只是为了说明，不符合最佳实践：不建议为参数和成员使用同样的名字
+
+int height; //定义一个名字，稍后将在 Screen 中使用
+class Screen{
+public:
+    typedef std::string::size_type pos;
+    void dummy_fcn(pos height){
+        cursor = width * height;  //哪个 height？是哪个参数？
+    }
+private:
+    pos cursor=0;
+    pos height=0, width=0;
+};
+```
+
+
+例:
+
+```
+#include<iostream>
+using namespace std;
+
+// 函数中变量的查找顺序
+/*
+dummy_fcn 的 height 是哪个？
+1.函数内，使用前：是形式参数
+2. 如果想使用成员变量，则可以使用 this->height 或 Screen::height
+*/
+
+int height; //定义一个名字，稍后将在 Screen 中使用
+class Screen{
+public:
+    typedef std::string::size_type pos;
+    void dummy_fcn(pos height){
+        //cursor = width * height;  //哪个 height？是传入的参数
+
+        //不好的写法，成员函数中的名字不应该隐藏同名的类成员
+        //cursor = width * this->height; //height是类的私有成员
+        cursor = width * Screen::height; //height是类的私有成员
+    }
+    void show(){ cout << cursor << endl;}
+private:
+    pos cursor=0;
+    pos height=1, width=1;
+};
+
+int main(){
+    Screen scr1;
+    scr1.dummy_fcn(50);
+    scr1.show();
+    return 0;
+}
+
+$ g++ b14_var_in_class_method.cpp 
+$ ./a.out 
+1
+```
+
+> Note: 尽管类成员被隐藏了，但我们仍然能通过加上类的名字作用域或者使用this指针强制访问成员。
+
+最好的确保使用成员height的方法是给参数起个其他名字，防止隐藏类成员：
+
+```
+    void Screen::dummy_fcn(pos ht){
+        cursor = width * height; //成员变量 height
+    }
+```
+
+- 编译器在成员函数内找不到，就在类内全局查找，然后找到了。
+    * 类两次扫描，先扫描所有的名字声明，然后类完全可见时再扫描函数体。
+
+
+
+
+#### 类作用域之后、在外围的作用域中查找
+
+如果函数和类内都没找到，则接着在外围的作用域中查找。
+
+如果想要外层作用域中的、被类成员隐藏的变量怎么办？使用作用域访问符 `::height`
+
+```
+//不建议的写法：不要隐藏外层作用域中可能被用到的名字
+    void Screen::dummy_fcn(pos height){
+        cursor = width * ::height; //哪个 height? 是那个全局变量
+    }
+```
+
+> Note: 尽管外层的对象被隐藏掉了，但仍然可以通过作用域运算符来访问它。
 
 
 
 
 
+#### 在文件中名字的出现处对其进行解析
 
+成员定义在类外部时，名字查找的第三步不仅考虑类定义之前的全局作用域中的声明，还需要考虑在成员函数定义前的全局作用域中的声明。
 
+```
+#include<iostream>
+using namespace std;
 
+// 定义在类外的成员函数，名字查找顺序：考虑类前作用域、考虑方法定义前的作用域
+int height;  //定义了一个名字，稍后在Screen 中使用
+class Screen{
+public:
+    typedef std::string::size_type pos;
+    void setHeight(pos);
+    pos height = 0; //隐藏了外层作用域中的同名 height
+};
 
+Screen::pos verify(Screen::pos);
 
+//全局函数 verify 的声明在类的定义前是不可见的。然而，名字查找的第三步，包括了成员函数定义前的全局作用域。
+// 该例中，verify 声明出现在定义 setHeight 前，可以正常访问
+void Screen::setHeight(pos var){
+    // var: 参数
+    // height: 类的成员
+    // verify: 全局函数
+    height = verify(var);
+}
 
+int main(){
+    Screen scr1;
+    scr1.setHeight(25);
+    cout << scr1.height << endl;
 
+    return 0;    
+}
 
+Screen::pos verify(Screen::pos ht){
+    if(ht>1e4){
+        return 1e4;
+    }
+    return ht;
+}
 
+$ g++ b15_var_in_class.cpp 
+$ ./a.out 
+25
+```
 
 
 
@@ -1642,6 +2345,29 @@ class Screen;  //Screen 类的声明
 
 
 ## 7.5 构造函数再探
+
+### 7.5.1 构造函数初始值列表
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
