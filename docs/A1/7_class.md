@@ -2333,7 +2333,7 @@ $ ./a.out
 25
 ```
 
-
+> $ g++ b0_Screen_class.cpp
 
 
 
@@ -2348,6 +2348,199 @@ $ ./a.out
 
 ### 7.5.1 构造函数初始值列表
 
+我们定义变量时习惯立即对其初始化，而非先定义、再赋值:
+
+```
+string foo = "hello"; //定义并初始化
+
+string bar;   //默认初始化为空tring对象
+bar = "world";  //为bar赋一个新值
+```
+
+对象的数据成员，初始化和赋值也有类似的区别。
+
+- 如果没有在构造函数的初始值列表中显式的初始化成员，则该成员将在构造函数体之前执行默认初始化。
+
+```
+// Sales_data 构造函数的一种写法，虽然合法但比较草率：没有使用构造函数初始值
+Sales_data::Sales_data(const string &s,  unsigned cnt, double price){
+    bookNo = s;
+    units_sold = cnt;
+    revenue = cnt * price;
+}
+```
+
+以上代码和P237原始代码效果相同：构造函数完成后，数据成员的值相同。
+
+区别是原始版本初始化了它的数据成员，而这个版本是对数据成员执行了赋值操作。
+
+这一区别有什么深层次影响，完全取决于数据成员的类型。
+
+
+
+
+
+#### 构造函数的初始值有时必不可少
+
+- 如果成员是 const 或引用，则必须初始化。
+- 当成员属于某种类类型，且该类没有定义默认构造函数时，也必须将这个成员初始化。
+
+例1: 常量对象和引用，必须被初始化。
+
+```
+// 必须初始化的情形：是引用或const成员
+class ConstRef{
+public:
+    ConstRef(int ii);
+private:
+    int i;
+    const int ci;
+    int &ri;
+};
+
+
+
+ConstRef::ConstRef(int ii){
+    i=ii; //正确
+    ci=ii; //错误：不能给const赋值
+    //error: assignment of read-only member ‘ConstRef::ci’
+
+    ri=i;  //错误：ri没被初始化
+    //note: ‘int& ConstRef::ri’ should be initialized
+}
+```
+
+
+初始化const或引用成员内的唯一机会就是：构造函数初始值:
+
+``` 
+//正确：显式的初始化引用和const成员
+ConstRef::ConstRef(int ii): i(ii), ci(ii), ri(i){}
+``` 
+
+
+> 如果成员是 const 、引用，或者某种未提供默认构造函数的类类型，我们必须通过构造函数初始值列表为这些成员提供初始值。
+
+
+例2: 未提供默认构造函数的类类型，必须给出初始化
+
+```
+#include<iostream>
+using namespace std;
+
+//未提供默认构造函数的类类型，必须提供初始化值
+class A{
+public:
+    A(int i): x(i){} //没有默认构造函数
+    void show(){cout << "A::x=" << x << endl;}
+private:
+    int x;
+};
+
+class B{
+public:
+    B()=default; //提供默认构造函数了
+    B(A ia, int iy): a(ia), y(iy){}
+    void show(){ a.show(); cout << "B::y=" << y << endl; }
+private:
+    A a;
+    int y;
+};
+
+int main(){
+    //B b0; // error: no matching function for call to ‘A::A()’
+    A a(10);
+    B b(a, 3);
+    a.show();
+    b.show();
+    return 0;
+}
+
+$ g++ c2_no_default_class_para.cpp 
+$ ./a.out 
+A::x=10
+A::x=10
+B::y=3
+```
+
+
+> 建议：使用构造函数初始值。
+
+- 在很多类中，初始化和赋值的区别是底层效率问题：前者直接初始化数据成员，后者则先初始化再赋值。
+- 除了效率问题，就是一些数据成员必须被初始化。
+- 建议养成使用构造函数初始化的好习惯。
+
+
+
+
+
+#### 成员初始化的顺序
+
+- 构造函数初始化值中每个成员只能出现一次。
+- 意外: 构造函数初始值列表并不限定初始化的具体执行顺序
+    * 成员的初始化顺序与他们在类定义中出现的顺序一致。而不是构造函数的初始化值列表顺序。
+
+例: 一个成员是另一个成员来初始化的，则两个成员的初始化顺序很关键。
+
+```
+#include<iostream>
+using namespace std;
+
+// 构造函数初始值列表不影响初始化顺序，决定性的是这些成员在类中定义的先后
+
+class X{
+public:
+    int i;
+    int j;
+    // 未定义的： i在j之前被初始化。
+    // 所以i是一个随机j值，然后j是val
+    X(int val): j(val), i(j){}
+};
+
+
+int main(){
+    X x(2);
+    cout << "x.i=" << x.i << endl;
+    cout << "x.j=" << x.j << endl;
+    return 0;
+}
+
+$ g++ c3_init_list_by_define_in_class.cpp 
+$ ./a.out 
+x.i=32767
+x.j=2
+```
+
+> 最佳实践: 最好令构造函数初始值顺序和成员声明的顺序保持一致。而且，尽量避免使用某些成员初始化其他成员。
+
+
+
+
+
+#### 默认实参和构造函数
+
+- Sales_data 默认构造函数的行为和只接收一个string 实参的构造函数差不多。
+    * 唯一区别是：接收string实参的构造函数使用该值初始化 bookNo，而默认函数（隐式的）使用string默认构造函数初始化bookNo。
+    * 可以重写一个使用默认实参(P211, 6.5.1)的构造函数
+
+```
+class Sales_data{
+publci:
+    // 定义默认构造函数，令其与只接受一个string 实参的构造函数功能相同
+    Sales_data(std::string s="") : bookNo(s) {}
+    //其他构造函数与之前一致
+    Sales_data(std::string s, unsigned cnt, double rev):
+        bookNo(s), units_sold(cnt), revenue(rev*cnt) {}
+    Sales_data(std::istream &is) { read(is, *this);}
+    //其他与之前版本一致
+};
+```
+
+两个版本的合并为一个构造函数，该默认实参是""的构造函数实际上为我们提供了默认构造函数。
+
+> Note: 如果一个构造函数为所有参数提供了默认实参，则它实际上也定义了默认构造函数。
+
+注意：上述三个实参版本的构造函数，就不应该提供默认值了，因为如果用户售出书籍的数量是非零值，我们期望用户同时提供其售价。
 
 
 
@@ -2357,6 +2550,409 @@ $ ./a.out
 
 
 
+### 7.5.2 委托构造函数
+
+C++11新标准扩展了构造函数初始值的功能，使得我们可以定义**委托构造函数(delegating constructor)**.
+
+- 一个 委托构造函数使用它所属类的其他构造函数执行它自己的初始化过程，
+- 或者说，它把它自己的一些(或全部)职责委托给了其他构造函数。
+
+形式：
+
+- 委托构造函数有成员初始值列表和函数体。
+- 不过初始值列表只有一个唯一入口，就是类名本身。
+- 类名后面紧跟着圆括号括起来的参数列表，参数列表必须和类中另外一个构造函数匹配。
+
+```
+#include<iostream>
+using namespace std;
+
+//委托构造函数
+
+class Sales_data{
+private:
+    std::string bookNo;
+    unsigned units_sold;
+    double revenue;
+public:
+    //非委托构造函数使用对应的实参初始化成员
+    Sales_data(std::string s, unsigned cnt, double price):
+        bookNo(s), units_sold(cnt), revenue(cnt * price) {}
+    //其余构造函数全部委托给零一个构造函数
+    Sales_data(): Sales_data("", 0, 0){}
+    Sales_data(std::string s): Sales_data(s, 0, 0) {}
+    //Sales_data(std::istream &is):Sales_data() { read(is, *this);}
+
+    //其他函数
+    void print(){
+        cout << bookNo << "\t" << units_sold << "\t" << revenue << endl;
+    };
+};
+
+int main(){
+    Sales_data sd1("S1", 1, 1), sd2, sd3("s3");
+    sd1.print();
+    sd2.print();
+    sd3.print();
+    return 0;
+}
+
+$ g++ c4_delegating_constructor.cpp 
+$ ./a.out 
+S1      1       1
+        0       0
+s3      0       0
+```
+
+
+例2: 假如函数体不为空，则先执行被调函数的初始值列表、函数体，然后控制权才交还给委托者的函数体。
+
+```
+#include<iostream>
+using namespace std;
+
+//委托构造函数，如果函数体不为空，执行顺序？
+
+class Sales_data{
+private:
+    std::string bookNo;
+    unsigned units_sold;
+    double revenue;
+public:
+    //非委托构造函数使用对应的实参初始化成员
+    Sales_data(std::string s, unsigned cnt, double price):
+        bookNo(s), units_sold(cnt), revenue(cnt * price) {
+            cout << "c1-first: B " << units_sold << endl;
+            units_sold =10;
+            cout << "c1-first: A" << units_sold << endl;
+    }
+    //其余构造函数全部委托给零一个构造函数
+    Sales_data(std::string s=""): Sales_data(s, 5, 0){
+        cout << "C2: B" << units_sold << endl;
+        units_sold =20;
+        cout << "C2: A" << units_sold << endl;
+    }
+
+    //其他函数
+    void print(){
+        cout << bookNo << "\t" << units_sold << "\t" << revenue << endl;
+    };
+};
+
+int main(){
+    Sales_data sd1("Sd1"); 
+    //先执行初始化列表 - 执行权跑到调用的构造函数 - 初始化列表： 5
+    // 然后是该函数的函数体：10
+    // 然后调用结束，回到调用函数，执行函数体: 20
+    // 构造函数 执行结束。
+    sd1.print();
+    return 0;
+}
+
+$ g++ c4_delegating_constructor2.cpp 
+$ ./a.out 
+c1-first: B 5
+c1-first: A10
+C2: B10
+C2: A20
+Sd1     20      0
+```
+
+
+
+
+
+
+
+
+### 7.5.3 默认构造函数的作用
+
+当对象被默认初始化或值初始化时自动执行默认构造函数。
+
+
+**默认初始化在以下3种情况下发生：**
+
+例1: (默认初始化1)在块作用域内不使用任何初始值定义一个非静态变量(P39, 2.2.1) 或者数组时(P101, 3.5.1)
+
+```
+#include<iostream>
+using namespace std;
+
+//默认初始化
+int main(){
+    {
+        int i=1000, j, x[2];
+        cout << j << endl;
+        cout << x[0] << "\t" << x[1] << endl;
+    }
+    //cout << i << endl; //error: ‘i was not declared in this scope
+
+    return 0;    
+}
+
+$ g++ c5_default_init.cpp 
+$ ./a.out 
+22046
+-840581504      32767
+```
+
+
+
+例2: (默认初始化2)当一个类本身含有类类型成员，且使用合成的默认构造函数时(P235, 7.1.4)
+
+```
+#include<iostream>
+using namespace std;
+
+//默认初始化 2
+struct A{
+    int i;
+};
+
+struct B{
+    A a;
+};
+
+int main(){
+    B b1,b2, b3[5];
+    for(int i=0; i<5; i++)
+        cout << b3[i].a.i << endl;
+
+    return 0;    
+}
+
+$ g++ c5_default_init2.cpp 
+$ ./a.out 
+0
+0
+1204924640
+22008
+-1454830224
+```
+
+
+
+例3: (默认初始化3) 类类型成员没有在构造函数初始值列表中显式的初始化时(P237, 7.1.4)
+
+```
+#include<iostream>
+using namespace std;
+
+//默认初始化 3
+struct A{
+    int i;
+};
+
+struct B{
+    A a;
+    int j;
+    B(int x): j(x){}
+};
+
+int main(){
+    B b1(5), b2(10);
+    cout << b1.j << "\t" << b1.a.i << endl;
+    cout << b2.j << "\t" << b2.a.i << endl;
+
+    return 0;    
+}
+
+$ g++ c5_default_init3.cpp 
+$ ./a.out 
+5       -1527914240
+10      708092160
+```
+
+
+**值初始化在以下3种情况下发生：**
+
+例1: (值初始化) 数组初始化的过程中提供的初始值少于数组的大小时(P101, 3.5.1)
+
+```
+#include<iostream>
+using namespace std;
+
+//值初始化 1
+int main(){
+    int arr[5]={10,20};
+    for(auto i : arr)
+        cout << i << endl;
+    return 0;
+}
+
+$ g++ c6_value_init.cpp 
+$ ./a.out 
+10
+20
+0
+0
+0
+```
+
+
+
+例2: 不适用初始值定义一个局部静态变量时(P185, 6.1.1)
+
+```
+#include<iostream>
+using namespace std;
+
+//值初始化 2
+void counter(){
+    static int cnt;
+    cout << cnt++ << endl;
+}
+
+int main(){
+    for(int i=0; i<5; i++)
+        counter();
+    return 0;
+}
+
+
+$ g++ c6_value_init2.cpp 
+$ ./a.out 
+0
+1
+2
+3
+4
+```
+
+
+例3: (值初始化) 通过书写型如 T() 的表达式显式的请求值初始化时，其中T是类型名。
+
+- vector的一个构造函数只接受一个实参用于说明vector的大小(P88, 3.3.1)
+- 它就是使用一个这种形式的实参来对它的元素初始化器进行值初始化。
+
+```
+#include<iostream>
+#include<vector>
+using namespace std;
+
+//值初始化 3
+int main(){
+    vector<int> arr(5); //5个值，每个都是0
+    //vector<int> arr2(5, 20); //5个值，每个都是20
+    for(auto i : arr)
+        cout << i << endl;
+    return 0;
+}
+
+$ g++ c6_value_init3.cpp 
+$ ./a.out 
+0
+0
+0
+0
+0
+```
+
+
+类必须包含一个默认函数，以便在上述情况下使用，其中大多数情况非常容易判断。
+
+不那么容易判断的是，类的某些数据成员缺少默认构造函数：
+
+```
+$ cat c7_default_constructor.cpp
+#include<iostream>
+using namespace std;
+
+class NoDefault{
+public:
+    NoDefault(const std::string&);
+    // 没有其他构造函数
+};
+
+struct A{             //默认情况下 my_mem 是 public 的
+    NoDefault my_mem;
+};
+
+A a; //错误：不能为A合成构造函数
+//error: use of deleted function ‘A::A()’ 这个错误一般是类A的默认初始化函数报错
+//note: ‘A::A()’ is implicitly deleted because the default definition would be ill-formed
+
+struct B{
+    B(){}; //错误：b_member 没有值
+    //error: no matching function for call to ‘NoDefault::NoDefault()’
+    NoDefault b_member;
+};
+
+int main(){
+    return 0;
+}
+```
+
+> 如果定义了其他构造函数，最好也要定义一个默认构造函数。
+
+
+
+
+
+
+
+#### 使用默认构造函数
+
+```
+Sales_data obj(); //正确，定义了一个函数而非对象
+Sales_data obj2; //正确，obj2是一个对象
+if ( obj.isbn() == obj2.isbn() )  //错误：obj 是一个函数
+```
+
+例: 使用默认构造函数
+
+```
+#include<iostream>
+using namespace std;
+
+// 怎么使用 默认构造函数？
+struct Sales_data{
+    string ISBN="IS";
+    string isbn(){ return ISBN;}
+    string show(){
+        return isbn();
+    }
+};
+
+Sales_data obj(); //正确，声明了一个函数而非对象
+Sales_data obj2; //正确，obj2是一个对象
+
+int main(){
+    cout << &obj << endl;
+    cout << &obj2 << endl;
+
+    cout << obj << endl;
+    cout << obj().show() << endl;
+/*
+    if ( obj.isbn() == obj2.isbn() ){  //错误：obj 是一个函数
+    // error: request for member ‘isbn’ in ‘obj’, which is of non-class type ‘Sales_data()’
+        cout << "eq" << endl;
+    }
+*/
+
+    return 0;
+}
+
+Sales_data obj(){ //定义该函数
+    return obj2;
+}
+
+
+$ g++ c8_use_default_constructor.cpp 
+$ ./a.out 
+1
+0x55b630c55160
+1
+IS
+```
+
+
+> 警告： 新手常犯的错误是，声明一个使用默认构造函数初始化的对象: 
+
+```
+Sales_data obj(); //错误：声明了一个函数：无参数，返回一个 Sales_data 对象
+Sales_data obj2;  //正确: obj2 是一个对象而非函数
+```
 
 
 
@@ -2366,6 +2962,333 @@ $ ./a.out
 
 
 
+### 7.5.4 隐式的类类型转换
+
+**转换构造函数(converting constructor)**(P514, 14.9)如何定义一种类类型转换到另一种类类型转换的转换规则。
+
+> Note: 能通过一个实参调用的构造函数，定义一条从构造函数的参数类型向类类型隐式转换的规则。
+
+
+- 在 Sales_data 类中，接受 string 的构造函数和接受 istream 的构造函数分别定义了从这两种类型向 Sales_data 隐式转换的规则。
+- 也就是说，需要使用 Sales_data 的地方，我们可以使用 string 或者 istream 作为替代。
+
+```
+string null_book = "9-999-9";
+// 构造一个临时的 Sales_data 对象
+// 该对象的 units_sold 和 revenue 为0，bookNo等于 null_book
+item.combine(null_book);
+```
+
+- 上段代码，我们用 string 实参调用了 Sales_data 的 combine 成员。
+    * 该调用是合法的，编译器用给定的string自动创建了一个 Sales_data 对象。
+    * 新生（临时）对象被传递个 combine。
+    * 因为 combine 的参数是一个常量引用，所以我们可以给该参数传递一个临时量。
+
+
+```
+#include<iostream>
+using namespace std;
+
+//隐式类型转换：靠构造函数，可以把一个类转为另一个类，则两类可以混用。
+class A{
+public:
+    A(int i=10): x(i) {}
+    A &combine(const A &a){
+        x += a.x;
+        return *this;
+    }
+    int get(){return x;}
+private:
+    int x;
+};
+
+int main(){
+    A a1, a2(20);
+    cout << "1 " << a1.get() << endl;
+    a1.combine(a2);
+    cout << "2 " << a1.get() << endl;
+    a1.combine(30); // 这里的int 30 直接通过构造函数转为A类型：A(30)
+    cout << "3 " << a1.get() << endl;
+    // 变量也行
+    int b=100;
+    a1.combine(b);
+    cout << "4 " << a1.get() << endl;
+
+    return 0;
+}
+
+$ g++ c9_implicit_type_transfer.cpp 
+$ ./a.out 
+1 10
+2 30
+3 60
+4 160
+```
+
+
+例2: 因为可以通过构造函数实现隐式类型转换，所以可以直接给类赋值（其实就是：初始化一个临时对象，并覆盖）
+
+```
+#include<iostream>
+using namespace std;
+
+//隐式类型转换：靠构造函数，可以把一个类转为另一个类，则两类可以混用。
+class A{
+public:
+    A(int i=10): x(i) {}
+    int get(){return x;}
+private:
+    int x;
+};
+
+int main(){
+    A a1, a2(20);
+    cout << &a1 << ", a1.x=" << a1.get() << endl;
+    a1=a2;
+    cout << &a1 << ", a1.x=" << a1.get() << endl;
+    a1=105;
+    cout << &a1 << ", a1.x=" << a1.get() << endl;
+
+    return 0;
+}
+
+
+$ g++ c9_implicit_type_transfer2.cpp 
+$ ./a.out 
+0x7ffe8bf47d1c, a1.x=10
+0x7ffe8bf47d1c, a1.x=20
+0x7ffe8bf47d1c, a1.x=105
+```
+
+
+
+
+#### 只允许一步类类型转换
+
+编译器只会一步类型转换，需要两步则报错。
+
+```
+item.combine("9-99"); //错误：两步转换，字符字面量转string，string转为Sales_data类
+
+item.combine( string("9-99") ); //正确：显示的转换为string，则隐式的只需要构造函数一步转为 Sales_data
+item.combine( Sales_data("9-99") ); //正确：隐式的转为string，显示的转为 Sales_data
+```
+
+
+例：字面量"9-99"转为string，string再转为 Sales_data 类类型，需要两步所以报错。
+
+```
+#include<iostream>
+using namespace std;
+
+//编译器只能进行一步类型转换，需要两步时报错
+class Book{
+    string ISBN;
+public:
+    //提供可用的构造函数
+    Book(string s=""): ISBN(s) {}
+    //其他方法
+    string isbn(){return ISBN;}
+    Book &combine(const Book &book){
+        ISBN += book.ISBN;
+        return *this;
+    }
+};
+
+int main(){
+    string s1="9-99";
+    Book book;
+    cout << "1 " << book.isbn() << endl;
+    book.combine(s1);
+    cout << "2 " << book.isbn() << endl;
+    
+    //book.combine("-12-34"); //error: cannot convert ‘const char [6]’ to ‘const Book&’
+    // 字符字面量本质上是字符数组，第一步转为string类，第二步通过Book()构造函数转为Book类。
+    
+    book.combine( string("-12-34") ); //显式转为 string，隐式转为Book
+    book.combine( Book("-56-78") ); //隐式转为string，显示转为 Book
+    cout << "3 " << book.isbn() << endl;
+    return 0;
+}
+
+$ g++ c10_only_allow_1_step_transfer.cpp 
+$ ./a.out 
+1 
+2 9-99
+3 9-99-12-34-56-78
+```
+
+
+
+
+#### 类类型的转换不是总是有效
+
+是否需要从 string 到 Sales_data 的转换依赖于我们对用户使用该转换的看法。
+
+- 在此例中，该转换可能是对的。null_book 中的string可能表示一本不存在的ISBN编号。
+- 另一个是 istream 到 Sales_data 的转换
+
+```
+// 使用 istream 构造函数创建一个临时对象传递给 combine
+item.combine(cin);
+```
+
+- 事实上，我们构造了一个对象，先将它的值加到item中，随后将其丢弃。
+
+
+
+
+#### 抑制构造函数定义的隐式转换
+
+构造函数添加 explicit 关键字，阻止隐式转换。
+
+```
+#include<iostream>
+using namespace std;
+
+// 阻止隐式类型转换
+
+class Sales_data{
+private:
+    std::string bookNo;
+    unsigned units_sold;
+    double revenue;
+public:
+    Sales_data() = default;
+    Sales_data(const std::string &s, unsigned n, double p):
+        bookNo(s), units_sold(n), revenue(p*n) {}
+    explicit  //加上这个符号，就不能string to Sales_data 隐式转换了
+    Sales_data(const std::string &s): bookNo(s) {}
+    explicit Sales_data(std::istream &);
+    //其他不变 
+    void show(){ cout << bookNo << endl;}
+};
+
+int main(){
+    Sales_data sd;
+    //sd=string("IS-99-9"); //error: no match for ‘operator=’ (operand types are ‘Sales_data’ and ‘std::string’
+    sd=Sales_data("IS-99-8");
+
+    sd.show();
+
+    return 0;
+}
+
+$ g++ c11_explicit_constructor.cpp
+$ ./a.out 
+IS-99-8
+```
+
+- 关键字 explicit 只对一个实参的构造函数有效。
+- 需要多个实参的构造函数不能用于执行隐式转换。
+- 只能在类内声明时使用 explicit，在类外定义时不应重复。
+
+```
+//error: ‘explicit’ outside class declaration
+explicit Sales_data::Sales_data(istream& is){
+    read(is, *this);
+}
+```
+
+
+
+
+
+#### explicit 构造函数只能用于初始化
+
+发生隐式转换时，如果执行拷贝形式的初始化（使用=），只能使用直接初始化而不能使用 explicit 构造函数。
+
+```
+#include<iostream>
+using namespace std;
+
+// 发生隐式类型转换，如果是拷贝形式（使用=号），
+//则只能使用直接初始化，不能使用explicit构造函数
+
+class Book{
+private:
+    string ISBN;
+public:
+    explicit Book(string s1): ISBN(s1){}
+    void show(){cout << ISBN << endl;}
+};
+
+int main(){
+    string s2="9-99";
+    Book book1(s2); //正确，直接初始化
+    //Book book2 = s2; //错误：不能将explicit构造函数用于拷贝形式的初始化过程
+    //error: conversion from ‘std::string’ {aka ‘std::__cxx11::basic_string<char>’} to non-scalar type ‘ requested
+
+    book1.show();
+    return 0;
+}
+
+$ g++ c12_explicit2.cpp 
+$ ./a.out 
+9-99
+```
+
+> Note: 用 explicit 修饰的构造函数，只能以直接初始化的形式使用。且编译器不会在自动转换过程中使用该构造函数。
+
+
+
+
+
+#### 为转换显式的使用构造函数
+
+加 explicit 的构造函数不能用于隐式类型转换，但是可以显式使用。
+
+```
+sd1.combine( Sales_data(null_book) ); // 显式构造的 Sales_data对象，可以
+sd1.combine( static_cast<Sales_data>(null_book) ); // 显式转换，也可以
+// static_cast 可以使用 explicit 的构造函数
+```
+
+例:
+
+```
+#include<iostream>
+using namespace std;
+
+//显式调用加 explicit的构造函数
+class Sales_data{
+public:
+    explicit Sales_data(string s1): bookNo(s1){}
+    Sales_data &combine(const Sales_data &item){
+        bookNo += item.bookNo;
+        return *this;
+    }
+    void show(){ cout << bookNo << endl;}
+private:
+    string bookNo;
+};
+
+int main(){
+    Sales_data sd1("IS1-1");
+    sd1.show();
+
+    string null_book="-1-23";
+    //sd1.combine( null_book ); //构造函数加 explicit 后就不能隐式转换了
+    sd1.combine( Sales_data(null_book) ); // 显式构造的 Sales_data对象
+    sd1.combine( static_cast<Sales_data>(null_book) ); // 显式转换，也可以
+    // static_cast 可以使用 explicit 的构造函数
+    sd1.show();
+    return 0;
+}
+
+$ g++ c13_explicit3.cpp 
+$ ./a.out 
+IS1-1
+IS1-1-1-23-1-23
+```
+
+
+#### 标准库中含有显式构造函数的类
+
+我们用过的一些标准库中的类，含有单参数的构造函数。
+
+- 接受一个单参数的 const char* 的 string 构造函数(P76, 3.2.1)，不是 explicit的。
+- 接受一个容量参数的 vector 构造函数(P87, 3.3.1)是 explicit 的。
 
 
 
@@ -2373,17 +3296,134 @@ $ ./a.out
 
 
 
+### 7.5.5 聚合类 aggregate class
+
+聚合类可以直接访问其成员，且具有特殊的初始化语法形式。
+
+- 一个类满足如下条件时，我们说它是聚合的：
+    * 所有成员都是 public 的
+    * 没有定义任何构造函数
+    * 没有类内初始值
+    * 没有基类，也没有 vurtual 函数。(第15章)
+
+```
+// 聚合类的例子
+struct Data{
+    int ival;
+    string s;
+};
+```
+
+- 初始化方法：花括号括起来的 初始值列表
+- 初始值的顺序必须与声明的顺序一致。
+- 如果初始值数量少，则后面的被值初始化(P101, 3.5.1)
+- 初始值数量不能多于类的成员数量。
+
+
+```
+// val1.ival=0; val1.s=string("Anna");
+Data val1 = {0, "Anna"};
+
+//错误：顺序错误
+Data val2 = {"Anna", 0};
+```
+
+
+- 显式的初始化类的对象的成员有3个明显缺点：
+    * 要求类成员都是public的
+    * 将初始化重任交给用户（而非类的作用），用户可能忘记某个初始值或者记错顺序，容易出错
+    * 添加或删除一个成员后，所有的初始化语句都需要更新。
 
 
 
 
+### 7.5.6 字面值常量类
+
+- P214, 6.5.2 constexpr 函数的参数和返回值必须是字面值类型。
+- 除了算术类型、引用和指针外，某些类也是字面值类型。
+    * 字面值类型的类只能含有 constexpr 函数成员。
+    * 这样的函数必须符合 constexpr 函数的所有要求，它们是隐式 const 的
+
+- 数据成员都是字面值类型的聚合类是字面值常量类。
+- 不是聚合类，但符合以下条件，也是一个字面值常量类
+    * 数据成员都必须是 字面值类型
+    * 类必须至少含有一个 constexpr 构造函数
+    * 如果一个数据成员含有类内初始值，则内置类型成员的初始值必须是一条常量表达式；或者如果成员属于某种类类型，则初始值必须使用成员自己的constexpr构造函数。
+    * 类必须使用析构函数的默认定义，该成员负责销毁类的对象。
 
 
+#### constexpr 构造函数
+
+//todo hard 不懂这是干啥用的？？
 
 
+尽管构造函数不能是 const 的，但是字面值常量类的构造函数可以是 constexpr 函数。
+
+事实上，一个字面值常量类必须至少提供一个 constexpr 构造函数。
+
+- constexpr 构造函数可以声明为 =default 的形式
+- 否则，就要
+    * 既要符合构造函数的要求：不能有返回值
+    * 又要符合constexpr 函数的要求：能拥有的唯一可执行语句是返回语句
+    * 这意味着 constexpr 构造函数一般来说应该是空的。
 
 
+```
+// constexpr 构造函数：一般应该是空的
+class Debug{
+public:
+    constexpr Debug(bool b=true): hw(b), io(b), other(b){}
+    constexpr Debug(bool h, bool i, bool o):hw(h), io(i), other(o) {}
+    constexpr bool any() const { return hw || io || other;}
+    void set_io(bool b){io=b;}
+    void set_hw(bool b){hw=b;}
+    void set_other(bool b){other=b;}
+private:
+    bool hw; //硬件错误，而非IO错误
+    bool io; //IO错误
+    bool other; //其他错误
+};
+```
 
+- constexpr 构造函数必须初始化所有数据成员，初始值或者使用 constexpr 构造函数，或者使用一条常量表达式。
+- constexpr 构造函数用于生成constexpr对象以及 constexpr 函数的参数或返回类型。
+
+
+```
+#include<iostream>
+using namespace std;
+
+// constexpr 构造函数：一般应该是空的
+class Debug{
+public:
+    constexpr Debug(bool b=true): hw(b), io(b), other(b){}
+    constexpr Debug(bool h, bool i, bool o):hw(h), io(i), other(o) {}
+    constexpr bool any() const { return hw || io || other;}
+    void set_io(bool b){io=b;}
+    void set_hw(bool b){hw=b;}
+    void set_other(bool b){other=b;}
+private:
+    bool hw; //硬件错误，而非IO错误
+    bool io; //IO错误
+    bool other; //其他错误
+};
+
+int main(){
+    //test1
+    constexpr Debug io_sub(false, true, false); //调试io
+    if(io_sub.any())  //等价于 if(true)
+        cerr << "print appropriate error messages" << endl;
+    //test2
+    constexpr Debug prod(false); //无调试
+    if(prod.any()) //等价于 if(false)
+        cerr << "print an error message" << endl;
+    return 0;
+}
+
+$ g++ c14_constexpr_constructor.cpp 
+$ ./a.out 
+print appropriate error messages
+```
 
 
 
@@ -2404,6 +3444,53 @@ $ ./a.out
 
 
 ## 7.6 类的静态成员
+
+类的每个对象都是共有的变量，比如银行利率。
+
+#### 声明静态变量
+
+声明前加上 static 关键字即可。
+
+- 静态成员可以是 public 或 private 的
+- 可以是常量、引用、指针、类类型等。
+
+例：银行账户记录类
+
+```
+class Acount {
+public:
+    void calculate(){ amount += amount * interestRate; }
+    static double rate(){ return interestRate; }
+    static void rate(double);
+private:
+    std::string owner;
+    double amount;
+    static double interestRate;
+    static double initRate();
+};
+```
+
+- 类的静态成员存在于任何对象之外，对象中不包含任何与静态数据成员有关的数据。
+    * 因此每个 Account 对象将包含2个数据成员 owner 和 amount。只存在一个 interestRate 对象且它被所有 Account 对象共享。
+- 静态成员函数也不与任何对象绑定在一起，不包含 this 指针。
+    * 作为结果，静态成员函数不能声明为 const 的
+    * 而且我们也不能在静态函数中使用this指针：不能显式使用this，也不能调用非静态成员函数隐式使用。
+
+
+#### 使用静态成员
+
+使用作用域运算符直接访问静态成员。
+
+```
+double r;
+r=Account::rate(); //使用于作用符访问静态成员
+```
+
+
+> P295/864
+
+
+
 
 
 
