@@ -20,18 +20,24 @@
 
 
 * Part II C++标准库
-    * [8.IO类]((A2/8_IO.md))
+    * [8.IO类](A2/8_IO.md)
+    
+    * [9.顺序容器](A2/8_IO.md)
+    * [10.泛型容器](A2/8_IO.md)
+    * [11.关联容器](A2/8_IO.md)
+    * [12.动态内存](A2/8_IO.md)
 
 
 
 
 * Part III 类设计者的工具
     * [13.拷贝控制](A3/13_copy_control.md)
+    * [14.重载运算与类型转换](A3/13_copy_control.md)
 
 
 
 * Part IV 高级主题
-    * [13.标准库特殊设施](A4/17_stdlib_infrastructure.md)
+    * [17.标准库特殊设施](A4/17_stdlib_infrastructure.md)
 
 
 
