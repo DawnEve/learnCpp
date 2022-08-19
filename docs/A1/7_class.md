@@ -3486,37 +3486,270 @@ double r;
 r=Account::rate(); //使用于作用符访问静态成员
 ```
 
+- 访问静态成员的方法：
+    * 类名加作用域访问符 A::staticI;
+    * 类的对象: a.staticI;
+    * 引用
+    * 指针
 
-> P295/864
+```
+Account a1{"Tom", 120}, *pac = &a1; //定义对象、指针
+Account &ra = a1; //引用
 
+//调用静态成员函数 rate 的等价形式
+r = a1.rate();
+r = ra.rate();   //通过 Account 对象或引用调用
+r = pac->rate(); //通过指向 Account 对象的指针
+```
 
+成员函数不用通过作用域运算符就能直接使用静态成员：
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+```
+class Account{
+public:
+    void calculate() { amount += amount * interestRate; }
+private:
+    static double interestRate;
+    //其他成员不变
+};
+```
 
 
+例: 静态成员的定义、初始化、调用。
+
+```
+#include<iostream>
+using namespace std;
+
+// 静态成员
+class Account {
+public:
+    void calculate(){ amount += amount * interestRate; }
+    static double rate(){ return interestRate; }
+    static void rate(double);
+    Account(string name, double total): owner(name), amount(total) {}
+    void show(){cout << owner << ": " << amount << endl; }
+private:
+    std::string owner;
+    double amount;
+
+    static double interestRate;
+    static double initRate();
+};
+// 必须初始化，否则报错
+double Account::interestRate = 2.7;
+
+int main(){
+    Account a1{"Tom", 120}, *pac = &a1;
+    Account &ra = a1;
+    Account::rate(1.28);
+
+    cout << "1 " << Account::rate() << endl; //调用1
+    cout << "2 " << a1.rate() << endl; //等价调用2
+    cout << "3 " << pac->rate() << endl; //等价调用3
+    cout << "4 " << ra.rate() << endl; //等价调用4
+
+    double r;
+    r=Account::rate();
+    cout << "5 " << r << endl;
+
+    a1.calculate();
+    a1.show();
+
+    return 0;
+}
+
+void Account::rate(double newRate){
+    interestRate=newRate;
+}
+
+$ g++ d1_static.cpp 
+$ ./a.out 
+1 1.28
+2 1.28
+3 1.28
+4 1.28
+5 1.28
+Tom: 273.6
+```
+
+
+
+
+#### 定义静态成员
+
+- 和其他函数一样，可以在类内、类外定义静态成员函数。
+- 在类外部定义静态函数时，不必添加 static 关键字。
+    * 类外定义必须指定类名。
+    * static 只出现在类内的声明语句中。
+
+```
+void Account::rate(double newRate){
+    interestRate=newRate;
+}
+```
+
+- 静态数据不属于类的任何一个对象，不是在创建类时定义的。
+    * 所以，静态数据成员不是由类的构造函数初始化的。
+    * 一般不能在类内部初始化静态成员。必须在类外部定义、初始化每个静态成员。一个静态成员只能被定义一次。
+- 类似全局变量，静态数据成员定义在任何函数之外。一旦定义，就一直存在于程序的整个生命周期。
+- 定义静态成员的方法，和在类外定义成员函数差不多。指定类型名，然后是类名::静态成员名字。
+
+```
+//定义并初始化一个静态成员
+double Account::interestRate = initRate();
+```
+
+- 解释
+    * 定义了一个名为 interestRate 的对象，属于类 Account
+    * 类型是 double
+    * 其余位于类作用域中：可以访问私有成员 initRate() 作为初始值。
+
+> Tip: 要想确保对象只定义一次，最好的办法是把静态数据成员的定义和其他非内联函数的定义放在同一个文件中。
+
+```
+#include<iostream>
+using namespace std;
+
+// 静态数据成员只能定义一次
+class Book{
+public:
+    Book(string isbn=""): ISBN(isbn){}
+    void show(){ cout << ISBN << ", " << total << endl; }
+    static int total;
+private:
+    string ISBN;
+};
+
+//必须定义在全局作用域：定义在main内报错。
+int Book::total =100; //定义
+
+int main(){
+    Book book("IS-9-99"), *pb = &book;
+    Book::total =12; //修改静态成员的值：只用类名
+    pb->total = 125; //使用指针修改
+    book.total=25; //使用对象名修改
+    book.show();
+
+    return 0;
+}
+
+
+$ g++ d2_static_define_once.cpp 
+$ ./a.out 
+IS-9-99, 25
+```
+
+
+
+
+#### 静态成员的类内初始化
+
+//todo ，不知道在说啥。 constexpr
+
+
+- 通常，类的静态成员不应该在类的内部初始化。
+- 然而，可以为静态成员提供 const 整数类型的类内初始值，不过要求静态成员必须是字面值常量类型的 constexpr(P267, 7.5.6)
+    * 初始值必须是常量表达式，因为这些成员本身就是 常量表达式
+
+例: 用一个初始化了的静态数据成员指定数组成员的维度。
+
+```
+class Account{
+public:
+    static double rate() { return interestRate; }
+    static void rate(double);
+private:
+    static constexpr int period = 30; //period 是常量表达式
+    double daily_tbl[period];
+};
+```
+
+- period 的唯一用途是初始化 daily_tbl 的维度，则不需要在 Account 外部专门定义 period。
+
+```
+// 一个不带初始值的静态成员的定义
+constexpr int A::period; //初始值在类的定义内提供 
+```
+
+
+> 最佳实践: 即使一个常量静态成员在类的内部被初始化了，通常情况下也应该在类的外部定义一下该成员。
+
+```
+#include<iostream>
+using namespace std;
+
+// 定义
+class A{
+public:
+    static constexpr int period = 30; // period 是一个常量表达式
+};
+
+// 一个不带初始值的静态成员的定义
+constexpr int A::period; //初始值在类的定义内提供 
+// 上一行：该定义可有可无。
+
+int main(){
+    A a;
+    cout << a.period << endl;
+    return 0;
+}
+
+
+$ g++ d3_static_const.cpp 
+$ ./a.out 
+30
+```
+
+
+
+#### 静态成员能用于某些场景，而普通成员不能
+
+- 静态成员可以是不完全类型(P249, 7.3.3)
+- 静态数据成员的类型就是它所属的类类型。
+- 非静态数据成员则受到限制，只能声明成它所属类的指针或引用。
+
+```
+#include<iostream>
+using namespace std;
+
+// 
+class Bar{
+public:
+    Bar(int i=0): x(i) {}
+    void show(){ cout << x << endl;}
+private:
+    int x;
+    static Bar mem1; //正确：静态成员可以是不完全类型
+    Bar *pmem2; //正确：指针成员可以是不完全类型
+    //Bar mem3; //错误：数据成员必须是完全类型
+    // error: field ‘mem3’ has incomplete type ‘Bar’
+};
+
+int main(){
+    Bar b1;
+    b1.show();
+    return 0;
+}
+
+$ g++ d4_static_type.cpp 
+$ ./a.out 
+0
+```
+
+- 静态成员和普通成员内的另一个区别是：可以使用静态成员作为默认实参(P211, 6.5.1)
+
+```
+class Screen{
+public:
+    // bkground 表示一个在类中稍后定义的静态成员
+    Screen& clear(char = bkground);
+private:
+    static const char bkground;
+};
+```
+
+非静态数据成员不能作为默认实参，因为它的值本身属于对象的一部分，这么做的结果是无法真正提供一个对象以便从中获取成员的值，最终引发错误。
 
 
 
@@ -3525,4 +3758,17 @@ r=Account::rate(); //使用于作用符访问静态成员
 
 
 
+## 小结
 
+类是C++语言中最基本的特性。
+
+类的2项基本能力：数据抽象、封装。
+
+
+
+
+
+
+
+
+> 2022.8.19 End;

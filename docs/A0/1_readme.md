@@ -211,6 +211,24 @@ The repo of this docs: `https://github.com/DawnEve/learnCpp`
 
 
 
+
+## (9) resume 
+
+When power off, start the service again.
+
+```
+$ docker start docsify
+$ docker exec -it docsify bash
+
+# cd /home/docsify/learnCpp
+
+Start the server on port 3000:
+# docsify serve docs
+```
+
+
+
+
 ## Refer
 
 - https://docsify.js.org/#/?id=docsify

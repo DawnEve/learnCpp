@@ -33,6 +33,7 @@ v0.8.1 add 友元，mutable，链式调用 P250
     move chapter 1 code to A1/1/
 v0.8.2 add 友元类、友元成员函数、类中使用的名字查找顺序 P258
 v0.8.3 add 构造函数再探 P269
+v0.8.4 add static in class P275
 ## --> commit [使用印刷页码]
 ## ==========> push to github: 
 

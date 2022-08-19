@@ -2,13 +2,13 @@
 using namespace std;
 
 // 静态成员
-
-class Acount {
+class Account {
 public:
     void calculate(){ amount += amount * interestRate; }
     static double rate(){ return interestRate; }
     static void rate(double);
-    Acount(string name, double total): owner(name), amount(total) {}
+    Account(string name, double total): owner(name), amount(total) {}
+    void show(){cout << owner << ": " << amount << endl; }
 private:
     std::string owner;
     double amount;
@@ -16,18 +16,29 @@ private:
     static double interestRate;
     static double initRate();
 };
+// 必须初始化，否则报错
+double Account::interestRate = 2.7;
 
 int main(){
-    Acount a1{"Tom", 120};
-    Acount::
+    Account a1{"Tom", 120}, *pac = &a1;
+    Account &ra = a1;
+    Account::rate(1.28);
+
+    cout << "1 " << Account::rate() << endl; //调用1
+    cout << "2 " << a1.rate() << endl; //等价调用2
+    cout << "3 " << pac->rate() << endl; //等价调用3
+    cout << "4 " << ra.rate() << endl; //等价调用4
 
     double r;
-    r=Account::rate(); 
+    r=Account::rate();
+    cout << "5 " << r << endl;
+
+    a1.calculate();
+    a1.show();
 
     return 0;
 }
 
-
-void Acount::rate(double x){
-    return interestRate;
+void Account::rate(double newRate){
+    interestRate=newRate;
 }
