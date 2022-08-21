@@ -36,6 +36,7 @@ v0.8.3 add 构造函数再探 P269
 v0.8.4 add static in class P275
     # new chapter;
 v0.8.4 add favicon.ico
+v0.8.5 add stream 以引用做形参或者返回类型 P281
 ## --> commit [使用印刷页码]
 ## ==========> push to github: 
 
