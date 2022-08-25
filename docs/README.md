@@ -1,6 +1,6 @@
 # About this C++ note
 
-> version: 0.8.4
+> version: 0.8.6
 
 > [Book reading logs](Z1/2_reading_logs.md): by thread And/Or by date;
 
@@ -24,6 +24,7 @@ C++ 包括三大部分：面向过程，面向对象，模板与泛型。面向�
 ## Resources
 * docsify 编写规则: [效果](https://docsify.js.org/#/custom-navbar)， [github原文](https://github.com/docsifyjs/docsify/blob/develop/docs/custom-navbar.md?plain=1)
 * [cpp-cheatsheet](https://github.com/mortennobel/cpp-cheatsheet): single page info
+* [cppreference](https://en.cppreference.com/w/)
 * More resources: [A0/2_resource.md](/A0/2_resource.md)
 
 
@@ -49,6 +50,13 @@ C++ 包括三大部分：面向过程，面向对象，模板与泛型。面向�
 
 - 难懂，以后再看: //todo hard
     * 难点，不好理解，易混淆。
+
+
+
+
+## 专业常识
+
+- P311/864: 置位的意思是对某一位变量置位，就是将其设为“1”。相反复位就是将其设为“0”。
 
 
 

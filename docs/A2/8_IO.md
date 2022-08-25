@@ -7,8 +7,8 @@
 - cin，一个 istream 对象，从标准输入读取数据
 - cout，一个 ostream 对象，向标准输出写入数据
 - cerr，一个 ostrem 对象，向标准输出写入数据
-- >> 运算符，用来从一个 istream 对象读取输入数据
-- << 运算符，用来向一个 ostream 对象写入输出数据
+- `>>` 运算符，用来从一个 istream 对象读取输入数据
+- `<<` 运算符，用来向一个 ostream 对象写入输出数据
 - getline 函数(P78, 3.3.2)，从一个给定的 istream 读取一行数据，存入一个给定的 string 对象中: `getline(cin, str2);`
 
 
@@ -403,7 +403,127 @@ cin.clear( cin.rdstate() & ~cin.failbit & ~cin.badbit);
 
 ### 8.1.3 管理输出缓冲
 
->P307/864
+- 每个输出流都管理一个缓冲区，用来保存程序读写的数据: ` os << "please enter a value:";`
+- 导致缓冲刷新(即：数据真正写到输出设备或文件)的原因有很多：
+    * 程序正常结束，作为 main 函数的 return 操作的一部分，缓冲刷新被执行
+    * 缓冲区满，需要刷新后才能继续写入缓冲区
+    * 使用操作符，比如 endl 来显式刷新缓冲区
+    * 在每个输出操作之后，我们可以采用操纵符 unitbuf 设置流的内部状态，来清空缓冲区。
+        * 默认情况下，对cerr是设置 unitbuf 的，因此写到cerr的内容都是立即刷新的。
+    * 一个输出流可能被关联到另一个流。当读写被关联的流时，关联到的流的缓冲区会被刷新。
+        * 如，默认情况下，cin和cerr都关联到cout，因此，读cin或写cerr会导致cout的缓冲区被刷新。
+
+
+#### 刷新输出缓冲区
+
+- 除了 endl外，还有 flush 和 ends两个。
+    * flush 刷新缓冲区，但不输出任何额外的字符
+    * ends 向缓冲区插入一个空字符，然后刷新缓冲区
+
+```
+#include<iostream>
+using namespace std;
+
+//刷新输出缓冲区
+int main(){
+    int flag=0;
+    cout << "1 hi!" << endl; //输出hi和一个换行，然后刷新缓冲区
+    cout << "2 hi!" << flush; //输出hi，然后刷新缓冲区，不附加任何额外的字符
+    if(flag)
+        cout << "|" << endl;
+
+    cout << "3 hi!" << ends; //输出hi和一个空字符，然后刷新缓冲区
+    if(flag)
+        cout << "|" << endl;
+}
+
+$ g++ a6_flush.cpp 
+
+$ ./a.out 
+1 hi!
+2 hi!3 hi!wangjl@YStatio
+```
+
+
+
+#### unitbuf 操纵符
+
+- 使用 unitbuf 操纵符，可以在每次输出操作后刷新缓冲区。
+    * 它告诉流在接下来的每次操作之后都进行一次 flush 操作。
+- 而 nounitbuf 操纵符则重置流，恢复正常的系统管理的缓冲区刷新机制
+
+```
+cout << unitbuf; //此后的所有输出操作都会立即刷新缓冲区
+// 任何输出都立即刷新，无缓冲
+cout << nounitbuf; //回到正常的缓冲方式
+```
+
+> 警告：如果程序崩溃，输出缓冲区不会被刷新。
+
+也就是可能执行了，但是在缓冲区内，来不及输出。
+
+
+
+
+
+#### 关联输入和输出流
+
+当一个输入流被关联到输出流时，任何试图从输入流读取数据的操作都会先刷新关联的输出流。
+
+标准库将 cout 和 cin 关联在一起。 `cin >> ival;` 导致 cout 的缓冲区被刷新。
+
+> note: 交互式系统通常应该关联输入流和输出流。这意味着所有输出，包括用户提示信息，都会在读操作之前被打印出来。
+
+- tie 有两个重载的版本(P206, 6.4):
+    * 不带参数的，返回指向输出流的指针：如果本对象关联到一个输出流，则返回的就是指向这个流的指针；未关联，则返回空指针。
+    * 接受一个指向 ostream 的指针，将自己关联到另一个 ostream: `x.tie(&o);` 将流x关联到输出流o。
+- 既可以把一个 istream 对象关联到另一个 ostream，也可以将一个 ostream 关联到另一个 ostream:
+- 每个流同时最多关联到一个流，但多个流可以同时关联到同一个 ostream。
+
+
+```
+cin.tie(&cout); //仅仅使用从来展示：标准库将cin和cout关联在一起
+
+//old_tie 指向当前关联到cin的流（如果有的话）
+ostream *old_tie = cin.tie(nullptr); //cin 不再与其他流关联
+
+//将cin与cerr关联：这不是一个好主意，因为cin应该与cout关联
+cin.tie(&cerr); //读取cin会刷新cerr而不是cout
+cin.tie(old_tie);  //重建 cin 和 cout 间的正常访问
+```
+
+
+例: 没看到关联与否的区别 //todo
+
+```
+#include<iostream>
+using namespace std;
+
+//关联输入流和输出流：保证在读之前，输出所有用户提示
+
+int main(){
+    cin.tie(&cout); //仅仅使用从来展示：标准库将cin和cout关联在一起
+
+    //old_tie 指向当前关联到cin的流（如果有的话）
+    ostream *old_tie = cin.tie(nullptr); //cin 不再与其他流关联
+
+    //test
+    //cerr << "some error:";
+    cout << "input an int:";
+    int i;
+    cin >> i;
+
+    //将cin与cerr关联：这不是一个好主意，因为cin应该与cout关联
+    cin.tie(&cerr); //读取cin会刷新cerr而不是cout
+    cin.tie(old_tie);  //重建 cin 和 cout 间的正常访问
+
+    return 0;
+}
+
+$ g++ a7_tie.cpp 
+$ ./a.out 
+input an int:100
+```
 
 
 
@@ -419,11 +539,393 @@ cin.clear( cin.rdstate() & ~cin.failbit & ~cin.badbit);
 
 ## 8.2 文件的输入输出
 
+- 头文件 fstream 定义了三个类型支持文件IO
+    * ifstream 从一个给定文件读取数据
+    * ofstream 向一个给定文件写入数据
+    * fstream 读写给定文件。P676 17.5.3 对同一个文件流既读又写。
+- 与之前cin和cout操作一样：
+    * 使用IO运算符 (`<<` `>>`) 读写文件
+    * getline从一个 ifstream 读取一行数据。
+
+
+- 表 8.3 fstream 特有的操作
+    * fstream fstrm; 创建一个未绑定的文件流。fstream是头文件 fstream 中定义的一个类型
+    * fstream fstrm(s); 创建一个 fstream，并打开名为s的文件。s可以是 string 类型，或者一个指向c风格字符串的指针。这些构造函数都是 explicit 的。默认的文件模式 mode 依赖于 fstream 的类型。
+    * fstream(s, mode); 与前一个构造函数类似，但按照指定mode打开文件
+    * fstrm.open(s)  打开名为 s 的文件，并将文件与 fstrm 关联。s是string或指向c风格字符串的指针。默认文件mode依赖于fstream的类型。返回void。
+    * fstrm.close() 关闭 fstrm 绑定的文件。返回 void
+    * fstrm.is_open() 返回一个bool值，指出与 fstrm 关联的文件是否成功打开且未关闭。
 
 
 
 
 
+### 8.2.1 使用文件流对象
+
+
+- 想读写一个文件时，先定义一个文件流对象，并将对象和文件关联起来。
+    * 每个文件流都定义了一个 open 方法，它完成相关操作，定位给定的文件，并视情况打开为读或写模式。
+    * 创建文件流对象时，可以提供文件名（可选）。如果提供文件名，open 会自动调用。
+
+```
+ifstream in(ifile);  //构造一个 ifstream 并打开给定文件
+ofstream out;   // 输出文件流未关联到任何文件
+```
+
+在C++11中，文件名既可以是string对象，也可以是C风格字符数组(P109, 3.5.4)。旧版本标准库只允许C风格字符数组。
+
+
+
+#### 用 fstream 代替 iostream&
+
+- 使用基类型对象的地方，也可以使用继承该类型的对象来替代。
+    * 意味着，接受一个 iostream 类型引用（指针）参数的函数，也可以接受 fstream(或 sstream) 类型来调用。
+    * 也就是说，如果一个函数接受一个 ostream& 参数，我们调用这个函数时，可以传递给他一个 ofstream 对象。
+    * 对 istream& 和 ifstream 也是类似。
+
+
+> 报错: `error: variable ‘std::ifstream input’ has initializer but incomplete type` 的解决方法，是引入 `#include <fstream>`.
+
+
+例1: main() 函数传递参数，打开文件，读取内容，处理后保存到文件。
+
+使用 7.1.3 节中 read 和 print 函数读写命名函数。
+
+```
+    ifstream input(argv[1]); //打开输入文件
+    ofstream output(argv[2]); //打开输出文件
+    Sales_data total;
+    if( read(input, total) ){
+        Sales_data trans; //保存下一条记录
+        while( read(input, trans)){
+            if(total.isbn() == trans.isbn()){
+                total.combine(trans);
+            }else{
+                print( output, total) << endl; //打印结果
+                total = trans; //处理下一本
+            }
+        }
+        print(output, total) << endl; //打印最后一本书的销售额
+    }else 
+        cerr << "No data?!" << endl;
+```
+
+
+再次强调：记得引入 `#include <fstream>` 头文件。
+
+- 该函数与 P229 写法几乎完全相同。
+- 重要的是对 read 和 print 的调用。虽然2函数定义时的形参分别是 istream& 和 ostream&，但是可传递实参 fstream 对象。
+
+完整代码如下:
+
+```
+#include<iostream>
+#include <fstream> 
+using namespace std;
+
+class Sales_data{
+    friend std::istream &read(std::istream&, Sales_data&);
+    friend std::ostream &print(std::ostream&, const Sales_data&);
+public:
+    Sales_data() = default;
+    Sales_data(std::istream &);
+    std::string isbn() const { return bookNo;}
+    Sales_data &combine(const Sales_data &);
+private:
+    double avg_price() const;
+    string bookNo;
+    unsigned units_sold=0;
+    double revenue=0.0;
+};
+
+/********** 声明部分 ************/
+std::istream &read(std::istream&, Sales_data&);
+std::ostream &print(std::ostream&, const Sales_data&);
+
+
+/********** 定义部分 ************/
+// 类外的构造函数，定义
+Sales_data::Sales_data(std::istream &is){
+    read(is, *this); //read函数的作用：从is中读取一条交易信息，存入this对象中
+}
+
+// 输入的交易信息：ISBN、售出总数和售出价格
+istream &read(istream &is, Sales_data &item){
+    double price = 0;
+    is >> item.bookNo >> item.units_sold >> price;
+    item.revenue = price * item.units_sold;
+    return is;
+}
+
+ostream &print(ostream &os, const Sales_data &item){
+    os << item.isbn() << " " << item.units_sold << " "
+       << item.revenue << " " << item.avg_price();
+    return os;
+}
+
+
+// 成员函数的定义
+double Sales_data::avg_price() const {
+    if(units_sold)
+        return revenue / units_sold;
+    else 
+        return 0;
+}
+
+Sales_data& Sales_data::combine(const Sales_data &rhs){
+    units_sold += rhs.units_sold; //把rhs的成员加到this对象的成员上
+    revenue += rhs.revenue;
+    return *this; //返回调用该函数的对象
+}
+
+
+
+// 读文件
+int main(int argc, char *argv[]){
+     Sales_data sd1, sd2;
+    /*
+    // 测试IO
+    cout << "Please input info for sd1: bookNo units_sold price" << endl;
+    read(cin, sd1); //输入
+
+    print(cout, sd1) << endl; //输出
+    */
+
+    ifstream input(argv[1]); //打开输入文件
+    ofstream output(argv[2]); //打开输出文件
+    Sales_data total;
+    if( read(input, total) ){
+        Sales_data trans; //保存下一条记录
+        while( read(input, trans)){
+            if(total.isbn() == trans.isbn()){
+                total.combine(trans);
+            }else{
+                print( output, total) << endl; //打印结果
+                total = trans; //处理下一本
+            }
+        }
+        print(output, total) << endl; //打印最后一本书的销售额
+    }else 
+        cerr << "No data?!" << endl;
+    return 0;
+}
+
+/*
+$ cat a8_out.txt
+S1 4 80.4 20.1
+S2 1 30.5 30.5
+
+$ g++ a8_read_file.cpp
+$ ./a.out a8_file.txt a8_out.txt
+
+$ cat a8_out.txt 
+S1 4 80.4 20.1
+S2 1 30.5 30.5
+*/
+```
+
+例2: 仅读文件。见 `learnCpp/A2/8/a8_read_file2.cpp`
+
+例3: 仅写文件。见 `learnCpp/A2/8/a9_write_file.cpp`
+
+
+
+
+
+
+#### 成员函数 open 和 close
+
+先定义一个空文件流对象，随后调用 open 将它与文件关联起来。
+
+```
+ifstream in(ifile);   //构筑一个 ifstream 并打开给定文件
+ofstream out; // 输出文件流未与任何文件相关联
+out.open(ifile + ".copy"); 打开指定文件
+```
+
+- 如果调用 open 失败，failbit 会被置位(P280, 8.1.2)
+- 因为调用open 可能失败，进行 open 成功与否的检测通常是一个好习惯。
+
+```
+if(out) //检查 open 是否成功
+        // open 成功，我们可以使用该文件了
+```
+
+与之前的 cin 用作条件相似，如果open 失败，条件为假，我们就不会去使用 out 了。
+
+- 一旦一个文件流已经调用 open，它就保持了对应文件的关联。再调用open会失败，并会导致 failbit 被置位。随后试图使用文件流的操作都会失败。
+- 为了将文件流关联到另一个文件，必须首先关闭已经关联的文件。一旦成功关闭，才可以打开新的文件：
+
+```
+in.close(); //关闭文件
+in.open(ifile + "2"); //打开另一个文件
+```
+
+如果 open 成功，则open会设置流的状态，时得 good() 为 true。
+
+
+
+例: 一个流读取2个文件。要先读取一个，关闭后再读取另一个。
+
+```
+#include<iostream>
+#include<fstream>
+using namespace std;
+
+//读取另一个文件前，要关闭文件。
+
+int main(int argc, char *argv[]){
+    string str;
+    cout << "input a line: stop with ctrl+D" << endl;
+    
+    // 从键盘输入
+    /*while(getline(cin, str)){
+        cout << ">" << str << endl;
+    }*/
+
+    // 从2个文件输入
+    //ifstream input(argv[1]);
+    ifstream input;
+    cout << "argc="<< argc << endl;
+    for(int i=1; i<argc; i++){
+        input.open(argv[i]);
+        if(!input){
+            cout << "Error: input "<< argv[1] << " open failed!" << endl;
+            return 1;
+        }
+
+        while(getline(input, str)){
+            cout << i << ">" << str << endl;
+        }
+        //使用完关闭
+        input.close();
+    }
+
+    return 0;
+}
+
+/*
+$ g++ a10_open_close_open.cpp 
+$ ./a.out a8_file.txt a8_file2.txt 
+input a line: stop with ctrl+D
+1>S1 4 20.1
+1>S2 1 30.5
+2>S1 40
+2>S2 10
+*/
+```
+
+
+
+
+
+
+
+
+#### 自动构造与析构
+
+例: 从main传入一系列文件名，每个都要处理。
+
+- 每个循环创建一个名为 input 的 ifstream 对象，并打开来读取给定文件。
+- 用if检查 open 是否成功。成功则处理文件，失败则给出错误信息，并处理下一个文件。
+- 因为 input 是 for 循环的局部变量，它的每个循环步骤都要创建和销毁一次(P165, 5.4.1)。
+    * 当 fstream 对象离开其作用域时，与之关联的文件会自动关闭。下一步循环中， input 会再次创建。
+
+> Note: 当一个 fstream 对象被销毁时，close 会自动被调用。
+
+```
+#include<iostream>
+#include<fstream>
+using namespace std;
+
+// main 函数接受一个要处理的文件列表(P196, 6.2.5)
+int main(int argc, char *argv[]){
+    //对每个传递来的文件执行循环
+    int i=0;
+    for(auto p=argv +1; p!=argv + argc; ++p){
+        i++; //文件编号
+        ifstream input(*p); //创建输出流并打开文件
+        if(input) {   //如果文件打开成功，“处理”该文件
+            // process file
+            string str;
+            while(getline(input, str)){
+                cout << i << ": " << str << endl;
+            }
+        }else{
+            cerr << "Open file failed: " + string(*p);
+        }
+    } //每个循环步骤 input 都会离开作用域，因此会被销毁
+}
+
+/*
+$ g++ a11_auto_close.cpp 
+$ ./a.out a8_file.txt a8_file2.txt
+1: S1 4 20.1
+1: S2 1 30.5
+2: S1 40
+2: S2 10
+*/
+```
+
+
+测试： for 循环(while也一样)内变量是局部变量，每一轮都要创建和销毁一次。
+
+```
+#include<iostream>
+using namespace std;
+
+class Book{
+public:
+    int i;
+    Book(int x=0): i(x){
+        cout << "Book()" << endl;
+    }
+    ~Book(){
+        cout << "~Book()" << endl;
+    }
+};
+
+int main(){
+    Book *book = new Book(200);
+    cout << book->i << endl;
+    delete book;
+    // in while
+    int x=3;
+    for(int i=0; i<x; i++){
+        Book book(i);
+        cout << book.i << endl;
+    }
+
+    return 0;
+}
+
+
+$ g++ a12_variable_in_while.cpp 
+$ ./a.out 
+Book()
+200
+~Book()
+Book()
+0
+~Book()
+Book()
+1
+~Book()
+Book()
+2
+~Book()
+```
+
+
+
+
+
+
+
+### 8.2.2 文件模式
+
+
+> P312/864
 
 
 

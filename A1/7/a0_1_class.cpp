@@ -40,7 +40,7 @@ Sales_data::Sales_data(std::istream &is){
     read(is, *this); //read函数的作用：从is中读取一条交易信息，存入this对象中
 }
 
-// 非成员函数的定义
+// 成员函数的定义
 double Sales_data::avg_price() const {
     if(units_sold)
         return revenue / units_sold;

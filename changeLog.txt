@@ -37,6 +37,7 @@ v0.8.4 add static in class P275
     # new chapter;
 v0.8.4 add favicon.ico
 v0.8.5 add stream 以引用做形参或者返回类型 P281
+v0.8.6 add 文件读写流 P286
 ## --> commit [使用印刷页码]
 ## ==========> push to github: 
 
@@ -53,9 +54,10 @@ v0.8.5 add stream 以引用做形参或者返回类型 P281
   update version in header of /README.md
 
 
-经常出的错误:
+经常犯的错:
     * class A{}; 定义后要有分号;
     * class 成员默认都是 private 的；
+    * 使用 文件读写流，要加头文件 `#include<fstream>`
 
 
 ==> 勘误表：发现好几个错误了，不过从P247开始记录
