@@ -924,13 +924,120 @@ Book()
 
 ### 8.2.2 文件模式
 
+每个流都有一个关联的 **文件模式**(file mode)，用来指出如何使用文件。
 
-> P312/864
+- 图 8.4 文件模式
+    - in 以读方式打开
+    - out 以写方式打开
+    - app 每次写操作前均定位到文件末尾
+    - ate 打开文件后立即定位到文件末尾
+    - trunc 截断文件
+    - binary 以二进制方式进行IO
+
+- 无论哪种方式打开文件，都可以指定文件模式，调用open打开文件时可以，用一个文件名初始化流隐式打开文件时也可以。
+- 指定文件模式有如下限制
+    * 只可以对 ofstream 或 fstream 对象设定 out 模式
+    * 只可以对 ifstream 或 fstream 对象设定 in 模式
+    * 只有当 out 也被设定时才可设定 trunc 模式
+    * 只有 trunc 没被设定，就可以设定 app 模式。在 app 模式下，即使没有显式指定 out 模式，文件也总是以输出方式被打开。
+    * 默认情况下，即使我们没有指定 trunc ，以 out 模式打开的文件也会被截断。为了保留以 out 模式打开的文件的内容，我们必须同时设定 app 模式，这样只会将数据追加到文件末尾； 或者同时指定 in 模式，即打开文件同时进行读写操作(P676, 17.5.3)。
+    * ate 和 binary 模式可用于任何类型的文件流对象，且可以与其他任何文件模式组合使用。
+
+
+每个文件流都有默认的文件模式：
+
+- ifstream 默认以 in 模式打开
+- ofstream 默认以 out 模式打开
+- fstream 默认以 in 和 out 模式打开
 
 
 
 
 
+
+
+
+#### 以 out 模式打开文件会丢失已有数据
+
+默认打开一个 ofstream 时，文件内容会被丢弃。阻止清空文件的方法是同时指定 app 模式。
+
+```
+    // 这几条，file 都被截断
+    //ofstream out(fileName); //隐含以输出模式打开文件并截断文件
+    //ofstream out(fileName, ofstream::out); //隐含的截断文件
+    //fstream out(fileName, ofstream::out  | ofstream::trunc);
+
+    //为了保留原文件内容，必须显式指定 app 模式
+    //ofstream out(fileName, ofstream::app); //隐含的输出文件
+    ofstream out(fileName, ofstream::out | ofstream::app);
+```
+
+> 警告: 保留被 ofstream 打开的文件中已有数据的唯一方法是显式指定 app 或 in 模式。
+
+
+例: 打开文件，如果不指定 app 模式，则默认丢失文件原来的内容。
+
+```
+#include<iostream>
+#include<fstream>
+using namespace std;
+
+// ofsteam 默认使用 out 模式打开文件。指定 app 模式才能保留源文件内容
+
+int main(){
+    string s2 = "hello, Tom 01 02 03 04!";
+    string fileName="a13.txt";
+
+    // 这几条，file 都被截断
+    //ofstream out(fileName); //隐含以输出模式打开文件并截断文件
+    //ofstream out(fileName, ofstream::out); //隐含的截断文件
+    //fstream out(fileName, ofstream::out  | ofstream::trunc);
+
+    //为了保留原文件内容，必须显式指定 app 模式
+    //ofstream out(fileName, ofstream::app); //隐含的输出文件
+    ofstream out(fileName, ofstream::out | ofstream::app);
+
+    out << s2 << endl;
+    out.close();
+
+    cout << "Please view file: $ cat " << fileName << endl; 
+
+    return 0;
+}
+
+$ g++ a13_ofstream_out.cpp                            
+$ ./a.out                  
+Please view file: $ cat a13.txt
+
+$ cat a13.txt
+hello, Tom 01 02 03!
+hello, Tom 01 02 03 04!
+```
+
+
+
+
+
+
+
+#### 每次调用 open 时都会确定文件模式
+
+对于一个给定的流，每当打开文件时，都可以改变其文件模式。
+
+```
+    ofstream out; // 未指定文件打开模式
+    out.open("a14.txt"); //模式隐含设置为输出和截断
+    out.close(); //关闭out(原文件已经清空了)。以便我们用于其他文件。
+
+    out.open("a13.txt", ofstream::app); //模式为输出和追加
+    out << "hi, Tom" << endl;
+    out.close();
+```
+
+- 通常情况下，默认打开文件是 out 模式，意味着同时使用 trunc 模式，因此该文件被清空。
+- 当open时明确指定 app 模式时，文件得以保留，写在文件末尾。
+
+> Note: 每次打开文件时，都要设置文件模式，可能是显示地设置，也可能是隐式的设置。当程序未指定时，就是用默认值。
 
 
 
@@ -952,6 +1059,16 @@ Book()
 
 
 ## 8.3 string 流
+
+- sstream 头文件定义了三个来支持内存IO，这些类型可以向string 写数据。
+
+> P313/864
+
+
+
+
+
+
 
 
 
