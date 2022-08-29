@@ -1,6 +1,6 @@
 # About this C++ note
 
-> version: 0.8.6
+> version: 0.8.8
 
 > [Book reading logs](Z1/2_reading_logs.md): by thread And/Or by date;
 

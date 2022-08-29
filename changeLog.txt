@@ -39,6 +39,7 @@ v0.8.4 add favicon.ico
 v0.8.5 add stream 以引用做形参或者返回类型 P281
 v0.8.6 add 文件读写流 P286
 v0.8.7 add 文件打开模式 P287
+v0.8.8 add 字符流; 第八章 IO 库 end P290
 ## --> commit [使用印刷页码]
 ## ==========> push to github: 
 
@@ -57,6 +58,7 @@ v0.8.7 add 文件打开模式 P287
     * class A{}; 定义后要有分号;
     * class 成员默认都是 private 的， struct 成员默认都是public的；
     * 使用 文件读写流，要加头文件 `#include<fstream>`
+    * 使用 字符流，要加头文件 `#include<sstream>`
 
 
 ==> 勘误表：发现好几个错误了，不过从P247开始记录

@@ -1061,21 +1061,157 @@ hello, Tom 01 02 03 04!
 ## 8.3 string 流
 
 - sstream 头文件定义了三个来支持内存IO，这些类型可以向string 写数据。
+- 从 string 读取数据，就像 string 是一个 IO 流一样。
+    * istringstream 从 string 读取数据
+    * ostringstream 向 string 写数据
+    * stringstream 可以读写 string
+    * 需要头文件 sstream
 
-> P313/864
-
-
-
-
-
-
-
-
-
-
-
+- 表 8.5 stringstream 特有的操作
+    * sstream strm; # strm 是一个未绑定的 stringstream 对象。sstream是头文件 sstream 中定义的一个类型
+    * sstream strm(s); #strm是一个sstream对象，保存 string s的一个拷贝。此构造函数是 explicit 的(P265, 7.5.4)
+    * strm.str(); 返回 strm 所保存的 string 的拷贝
+    * strm.str(s); 将 string s 拷贝到 strm 中。返回void
 
 
+### 8.3.1 使用 istringstream 
+
+- 某项工作是对整行文本，而其他工作是处理行内的单个单词时，可以使用 istringstream
+
+例: 假定有一个文件，列出一些人和他们的电话号码。
+
+``
+morgan 111 112
+drew 211
+lee 311 312 333 314
+``
+
+- 每条记录都是人名开头
+- 一个人有1个或多个号码。
+
+定义一个类来描述输入数据:
+
+```
+struct PersonInfo{
+    string name;
+    vector<string> phone;
+};
+```
+
+- 读取文件，并创建一个 PersonInfo 类型的 vector。
+- 每个 vector 中的元素对应文件的一行记录。
+- 每个循环读取一行
+
+```
+    string line, word;  //分别保存输入的一行和单词（电话号码）
+    vector<PersonInfo> people;  //保存来自输入的所有记录
+    // 逐行读入数据，直到 cin 遇到文件末尾(或其他错误)
+    while(getline(cin, line)){
+        PersonInfo info;  //创建一个结构体对象
+        istringstream record(line); //将记录绑定到刚读入的行
+        record >> info.name; //记录名字
+        while( record >> word){ //读取电话号码
+            info.phones.push_back( word ); // 将电话追加到 号码向量
+        }
+        people.push_back(info); //将一行记录追加到 people 末尾
+    }
+```
+
+完整例子:
+```
+#include<iostream>
+#include<vector>
+#include<sstream>
+#include<fstream>
+using namespace std;
+
+// stringstream 示例
+// 注意: 要加头文件 #include<sstream>
+
+struct PersonInfo{
+    string name;
+    vector<string> phones;
+
+    void show(){
+        cout << "> " << name << ":";
+        for(auto i : phones){
+            cout << i << " / ";
+        }
+        cout << endl;
+    }
+};
+
+int main(){
+    //打开文件
+    ifstream fin("a15.txt");
+
+    // 从文本文件读取
+    string line, word;  //分别保存输入的一行和单词（电话号码）
+    vector<PersonInfo> people;  //保存来自输入的所有记录
+    // 逐行读入数据，直到 cin 遇到文件末尾(或其他错误)
+    while(getline(fin, line)){
+        PersonInfo info;  //创建一个结构体对象
+        istringstream record(line); //将记录绑定到刚读入的行
+        record >> info.name; //记录名字
+        while( record >> word){ //读取电话号码: 从字符流读取
+            info.phones.push_back( word ); // 将电话追加到 号码向量
+        }
+        people.push_back(info); //将一行记录追加到 people 末尾
+    }
+
+    // 关闭文件
+    fin.close();
+
+    // 输出
+    for(auto i : people){
+        i.show();
+    }
+}
+
+$ g++ a15_stringstream.cpp 
+$ ./a.out 
+> morgan:111 / 112 / 
+> drew:211 / 
+> lee:311 / 312 / 333 / 314 /
+```
+
+
+
+
+### 8.3.2 使用 ostringstream 
+
+- 逐步构建输出，希望最后一期打印时， ostringstream 就很有用。
+
+例: 上节的例子，如果想逐个验证电话号码并改变其格式。有效的输出到新文件，无效的舍弃并打印无效信息详情。
+
+- 输出前先写入到一个内存 ostringstream 中。
+
+```
+    for(const auto &entry: people){ //遍历people中的每一项
+        ostringstream formatted, badNums; //每个循环步骤创建的对象
+        for(const auto &nums: entry.phones){ //对每个数
+            if(!valid(nums)){
+                badNums << " " << nums; //将数的字符串形式存入 badNums
+            }else{
+                // 将格式化的字符串"写入"formatted
+                formatted << " " << format(nums);
+            }
+        }
+
+        // 一条有一个错误的，这一条就不输出到文件了
+        if(badNums.str().empty()) { //没有错误的数字
+            os << entry.name << " " 
+               << formatted.str() << endl; //打印名字和格式化的数
+        }else{
+            cerr << "input error: " << entry.name 
+                 << " invalid number(s) " << badNums.str() << endl;
+        }
+    }
+```
+
+- 以上程序，假设已经定义2个函数 valid 和 format，分别负责号码验证和格式化的功能。
+- 注意的是对字节流 formatted 和 badNums 的使用，可以直接使用 输出运算符 `<<`  向这些 字符流对象 写入数据。
+    * 实际这些 写入 操作转换为对 string 的操作，分别向 formatted 和 badNums 中的string 对象添加字符。
 
 
 
@@ -1083,6 +1219,14 @@ hello, Tom 01 02 03 04!
 
 
 
+## 小结
+
+- C++标准库处理面向流的输入和输出:
+    * iostream 处理控制台IO
+    * fstream 处理命名文件IO
+    * stringstream 完成内存 string 的IO
+- IO 对象有一组条件状态，可以检测和设置
+- 文件模式
 
 
 
@@ -1090,13 +1234,4 @@ hello, Tom 01 02 03 04!
 
 
 
-
-
-
-
-
-
-
-
-
-
+> 2022.8.29 end;
