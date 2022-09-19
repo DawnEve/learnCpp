@@ -17,9 +17,8 @@ int main(){
     vector<Book> vb1(10, 1); //这里调用了默认类型转换，int to Book，通过构造函数实现
     for(auto be=vb1.cbegin(); be < vb1.cend(); be++){
         //(*be).print();
-        be->print(); //迭代器就是针用
+        be->print(); //迭代器就是指针
     }
-
 
     return 0;
 }
