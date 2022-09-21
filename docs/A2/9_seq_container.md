@@ -688,6 +688,58 @@ this is book
 - 新标准中，容器既提供成员函数版本的swap，也提供非成员版本的swap。后者在泛型编程中是非常重要的。统一使用非成员版本的 swap 是一个好习惯。
 
 
+> 如何通过迭代器获取元素的地址？auto be=c1.begin(); `*be`是元素，则 `&*be` 是元素的地址。
+
+```
+#include<iostream>
+#include<vector>
+#include<list>
+using namespace std;
+
+// 通过迭代器获取元素的地址
+/*不能直接取迭代器的地址
+对迭代器加*，即获得该迭代器所指的元素
+对迭代器加*，再加&，就是该元素的地址 */
+int main(){
+    vector<int> arr1={1,2,3};
+    list<int> l2={-1,-2,-3};
+
+    // 一个元素只占用4位
+    auto be1=arr1.begin();
+    while(be1 != arr1.end()){
+        cout << &*be1 << ": " << *be1 << endl;
+        be1++;
+    }
+    cout << endl;
+
+    // list 确实很消耗内存，一个元素占用 f00-ee0 = 32位 = 4+8+8+?: 一个int是4,2个指针是2*8，还有 12 是啥占用的？
+    auto be2=l2.begin();
+    while(be2 != l2.end()){
+        cout << &*be2 << ": " << *be2 << endl;
+        be2++;
+    }
+    cout << endl;
+    cout << 0xf00 - 0xee0 << endl;
+
+    return 0;
+}
+
+$ g++ a17_get_addr_by_iterator.cpp 
+$ ./a.out 
+0x5594ef290eb0: 1
+0x5594ef290eb4: 2
+0x5594ef290eb8: 3
+
+0x5594ef290ee0: -1
+0x5594ef290f00: -2
+0x5594ef290f20: -3
+
+32
+```
+
+
+
+
 
 
 
@@ -702,22 +754,66 @@ forward_list 支持 max_size 和 empty，但不支持 size。
 
 
 
+
+
+
 ### 9.2.7 关系运算
 
+- 每个容器都支持相等运算符: `==` 和 `!=`
+- 除了无序关联容器，都支持 关系运算符: `>`, `>=`, `<`, `<=`
+    * 相同类型的容器，且保存相同类型的元素，才能做关系运算: `vector<int>` 和 `vector<int>`比较，而布恩那个和另一个 `vector<double>`做比较。
+    * 实际上是元素的逐对比较。这与string的关系运算符的工作方式类似:
+        - 如果大小相同，每个元素相同则相等，否则不等；
+        - 如果大小不同，但小容器中每个元素都和大容器一一相等，则小容器小于较大容器
+        - 如果两个容器都不是另一个容器的前缀子序列，则它们的大小取决于第一个不等元素的比较结果。
+
+
+```
+#include<iostream>
+#include<vector>
+using namespace std;
+
+// 关系运算符
+int main(){
+    vector<int> v1={1,3,5,7,9,12};
+    vector<int> v2={1,3,9};
+    vector<int> v3={1,3,5,7};
+    vector<int> v4={1,3,5,7,9,12};
+    cout << (v1<v2) << endl; //true; 第一个不等的元素 5<9
+    cout << (v1<v3) << endl; //false: 已有元素都相等，但是v1长
+    cout << (v1==v4) << endl; //true：每个元素都相等
+    cout << (v1==v2) << endl; //false: 数目不等
+
+    return 0;
+}
+
+$ g++ a16_equal.cpp 
+$ ./a.out 
+1
+0
+1
+0
+```
 
 
 
 
 
+#### 容器的关系运算符使用元素的关系运算符完成比较
+
+> 只有当其元素类型也定义了相应的比较运算符时，我们才可以使用关系运算符来比较2个容器。
+
+- 容器的相等是使用元素的`==`运算符来完成的
+- 其他关系运算符是使用元素的`<`运算符。
+
+如果元素不支持所需运算符，那么保存这种元素的容器就不能使用响应的关系运算。
 
 
+```
+vector<Sales_data> storeA, storeB;
+if ( storeA < storeB ) //错误: Sales_data 没有定义<运算符
+```
 
-
-
-
-
-
-> P328/864
 
 
 
@@ -732,6 +828,25 @@ forward_list 支持 max_size 和 empty，但不支持 size。
 
 
 ## 9.3 顺序容器操作
+
+> P331/864
+
+
+### 9.3.1 向顺序容器添加元素
+
+### 9.3.2 访问元素
+
+### 9.3.3 删除元素
+
+### 9.3.4 特殊的 forward_list 操作
+
+### 9.3.5 改变容器的大小
+
+### 9.3.6 改变操作可能使迭代器失效
+
+
+
+
 
 
 
