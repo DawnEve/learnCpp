@@ -51,6 +51,7 @@ C++ 包括三大部分：面向过程，面向对象，模板与泛型。面向�
 - 难懂，以后再看: //todo hard
     * 难点，不好理解，易混淆。
 
+- error in this book: 附录 Z1/4_error_logs.md
 
 
 

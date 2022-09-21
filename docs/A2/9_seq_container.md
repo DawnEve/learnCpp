@@ -369,6 +369,354 @@ array<int, 10> ia3 = {5};  //ia3[0]为5，其余为0
 
 ### 9.2.5 赋值和swap
 
+赋值
+
+```
+c1=c2;  //将c1的内容替换为c2中元素的拷贝。赋值后两者大小相等
+c1={a,b,c}; //赋值后，c1大小为3
+```
+
+例:
+
+```
+#include<iostream>
+#include<list>
+using namespace std;
+
+// 赋值
+int main(){
+    list<int> c1={1,2,3};
+
+    // 1.拷贝
+    list<int> c2=c1;
+
+    for(auto i: c2)
+        cout << i << ", ";
+    cout << endl;
+
+    // 2.赋值
+    c2={1,2,3,4,5};
+
+    for(auto i: c2)
+        cout << i << ", ";
+    cout << endl;
+
+    return 0;
+}
+
+$ g++ a9_assign.cpp 
+$ ./a.out 
+1, 2, 3, 
+1, 2, 3, 4, 5,
+```
+
+
+
+
+
+与内置数组不同，标准库的 array 类型允许赋值。
+
+```
+array<int, 5> a1={0,1,2,3,4};
+array<int, 5> a2={0};  //所有元素都是0
+a2=a1;  //替换a2中的元素，变为a1的拷贝
+a2={0};  //错误: 不能将一个花括号列表赋值给array  //注: 我认为作者写错了，这里不报错，是把a2元素归零。
+```
+
+例:
+
+```
+#include<iostream>
+#include<array>
+using namespace std;
+
+// array 可以赋值
+int main(){
+    array<int, 5> arr1={0,1,2,3,4};
+    array<int, 5> arr2={0};
+
+    // arr1
+    cout << arr1.size() << endl;
+    arr2=arr1;
+    cout << arr1.size() << endl;
+
+    for(auto i: arr1)
+        cout << i << " ";
+    cout << endl;
+
+    // arr2
+    arr2={0}; //不报错，不变长度。其他容器变长度
+    for(auto i: arr2)
+        cout << i << " ";
+    cout << endl;
+
+    return 0;
+}
+
+
+$ g++ a10_array_assign.cpp 
+$ ./a.out 
+5
+5
+0 1 2 3 4 
+0 0 0 0 0
+```
+
+
+- 表9.4: 容器赋值运算
+    * c1=c2;  将c1中的元素替换为c2中元素的拷贝。c1和c2必须具有相同的类型
+    * c={a,b,c...};   将c1中的元素替换为初始化列表中元素的拷贝(array 不适用) //注: 我的测试array使用
+    * swap(c1, c2);  交换c1和c2中元素。c1和c2必须具有相同的类型。swap通常比从c2向c1拷贝元素快得多。
+    * c1.swap(c2);  同上
+    * assign 操作符不适用于关联容器和 array
+    * seq.assign(b,e);   将seq中的元素替换为迭代器b和e所表示的范围中的元素。迭代器b和e不能指向seq中的元素
+    * seq.assign(il);   将seq中的元素替换为初始化列表 il 中的元素
+    * seq.assign(n,t);  将seq中的元素替换为n个值为t的元素
+
+> 赋值相关运算会导致指向左边容器内部的迭代器、引用和指针失效。而swap操作将容器内容交换不会导致指向容器的迭代器、引用和指针失效(容器类型为array和string的情况除外)。
+
+
+例: swap的用法
+
+```
+#include<iostream>
+#include<list>
+using namespace std;
+
+void print(const list<int> &l0){
+    cout << ">> &l0: " << &l0 << endl;
+    for(auto i: l0)
+        cout << i << " ";
+    cout << endl;
+}
+
+
+// swap 的使用
+int main(){
+    list<int> l1={0,1,2};
+    list<int> l2={0,10,20};
+
+    //l1.swap(l2);
+    swap(l1, l2);
+    cout << "&l1: " << &l1 << endl;
+    cout << "&l2: " << &l2 << endl;
+    print(l1);
+    print(l2);
+
+    return 0;
+}
+
+$ g++ a11_swap.cpp 
+$ ./a.out 
+&l1: 0x7ffc6504d860
+&l2: 0x7ffc6504d880
+>> &l0: 0x7ffc6504d860
+0 10 20 
+>> &l0: 0x7ffc6504d880
+0 1 2 
+```
+
+
+
+#### 使用 assign (仅顺序容器)
+
+赋值运算符要求左边和右边的对象具有相同的类型。
+
+顺序容器(array除外)还定义了一个 assign 函数，允许从一个不同但是相容的类型赋值，或者从容器的一个子序列赋值。
+
+assign 操作用参数所指定的元素(的拷贝)替换左边容器中的所有元素。
+
+
+例: 用 assign 实现将一个 vector 中的一段 char* 值赋予一个 list 的string
+
+```
+list<string> names;
+vector<const char*> oldStyle;
+names = oldStyle; //错误：容器类型不匹配
+
+//正确: 可以将 const char* 转换为 string
+names.assign(oldStyle.cbegin(),  oldStyle.cend());
+```
+
+
+assign 的第二个版本接受一个整型值和一个元素值。它用指定数目且具有相同给定值的元素替换容器中原有的元素:
+
+```
+// 等价于 slist1.clear()
+// 后跟 slist1.insert(slist1.begin(), 10, "Hiya!");
+list<string> slist1(1);      //1个元素，为空string
+slist1.assign(10, "Hiya!");  //10个元素，每个都是 "Hiya!"
+```
+
+
+
+例2: assign 的三种用法
+
+```
+#include<iostream>
+#include<vector>
+#include<list>
+
+using namespace std;
+
+void print(list<string> l1){
+    for(auto i: l1)
+        cout << i << " ";
+    cout << endl;
+}
+
+// assign 的用法
+int main(){
+    list<string> names;
+    vector<const char*> oldStyle = {"Hi!", "How", "are", "you?"};
+    //names = oldStyle; //错误：容器类型不匹配
+    //error: no match for ‘operator=’
+
+    //正确: 可以将 const char* 转换为 string
+    names.assign(oldStyle.cbegin(),  oldStyle.cend());
+    print(names);
+
+    // 用法2: 列表
+    names.assign( {"this", "is", "a", "book"} );
+    print(names);
+
+    // 用法3: (n,t) 填充为n个值为t的元素
+    names.assign(3, "is");
+    print(names);
+
+    return 0;
+}
+
+
+
+$ g++ a12_assign.cpp 
+$ ./a.out 
+Hi! How are you? 
+this is a book 
+is is is
+```
+
+
+> 由于其旧元素被替换，因此传递给 assign 的迭代器不能指向调用 assign 的容器。
+
+
+
+
+
+#### 使用 swap
+
+```
+vector<string> svect1(10);  //10个元素的string
+vector<string> svect2(24);  //24个元素的string
+swap(svect1, svect2);
+```
+
+交换后，svect1将有24个string元素，svect2将有10个string元素。
+
+除array外， 交换两个容器内容的操作保证会很快：元素本身并未交换，swap 只是交换了2个元素的内部数据结构。
+
+```
+#include<iostream>
+#include<vector>
+using namespace std;
+
+//swap 没有交换元素，只是交换了容器的内部数据结构
+int main(){
+    vector<string> svect1(10);  //10个元素的string
+    vector<string> svect2(24);  //24个元素的string
+
+    cout << "addr Bef: " << &svect1[2] << " " << &svect2[2] << endl;
+    swap(svect1, svect2);
+    cout << "addr Aft: " << &svect1[2] << " " << &svect2[2] << endl;
+
+    cout << svect1.size() << endl;
+    cout << svect2.size() << endl;
+
+    return 0;
+}
+
+
+$ g++ a13_swap_addr.cpp 
+$ ./a.out 
+addr Bef: 0x56080c177ef0 0x56080c178040
+addr Aft: 0x56080c178040 0x56080c177ef0
+24
+10
+```
+
+
+> 除 array 外，swap 不对任何元素进行拷贝、删除或插入操作，因此可以保证在常数时间内完成。
+
+- 与其他容器不同，swap两个array会真正交换它们的元素。因此，交换2个array所需的时间与array中元素的数目成正比。
+
+例: 测试 swap array 是否拷贝元素？
+
+```
+#include<iostream>
+#include<array>
+using namespace std;
+
+//swap 没有交换元素，只是交换了容器的内部数据结构：array 是例外
+int main(){
+    array<string, 3> svect1={"hi", "how", "are"};
+    array<string, 3> svect2={"this", "is", "book"};
+
+    cout << "addr Bef: " << &svect1[2] << " " << &svect2[2] << endl;
+    swap(svect1, svect2); // 对于array，swap后元素的地址不变，就是发生了拷贝
+    cout << "addr Aft: " << &svect1[2] << " " << &svect2[2] << endl;
+
+    for(auto i : svect1)
+        cout << i << " ";
+    cout << endl;
+
+    return 0;
+}
+
+$ g++ a14_swap_array_addr.cpp 
+$ ./a.out 
+addr Bef: 0x7ffddd940ab0 0x7ffddd940b10
+addr Aft: 0x7ffddd940ab0 0x7ffddd940b10
+this is book
+```
+
+
+
+元素不被移动，就意味着，除string外，指向容器的迭代器、引用和指针在swap操作后都不会失效。他们仍然指向swap 操作之前所指向的那些元素。但是，swap后，这些元素属于不同的容器了。
+
+- 与其他容器不同，对于 string 调用 swap 会导致迭代器、引用和指针失效。 //我的测试是不失效。`9/a15_swap_string.cpp`
+- 因此，对于 array，在 swap 操作之后，指针、引用和迭代器所绑定的元素保持不变，但是元素值已经与另一个array中对应元素的值进行了交换。
+- 新标准中，容器既提供成员函数版本的swap，也提供非成员版本的swap。后者在泛型编程中是非常重要的。统一使用非成员版本的 swap 是一个好习惯。
+
+
+
+
+
+
+### 9.2.6 容器大小操作
+
+- 成员函数 size() 返回容器中元素的个数
+- empty() 当size为0时返回布尔值true，否则返回 false
+- max_size() 返回一个大于或等于该类型容器所能容纳的最大元素数的值。
+
+forward_list 支持 max_size 和 empty，但不支持 size。
+
+
+
+### 9.2.7 关系运算
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 > P328/864
 
 
