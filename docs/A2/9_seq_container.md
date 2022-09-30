@@ -829,10 +829,123 @@ if ( storeA < storeB ) //错误: Sales_data 没有定义<运算符
 
 ## 9.3 顺序容器操作
 
-> P331/864
-
 
 ### 9.3.1 向顺序容器添加元素
+
+除array外，所有标准库容器都提供灵活的内存管理。运行时可以灵活添加或删除元素来改变容器大小。
+
+- 表 9.5 向顺序容器添加元素的操作 
+    * 这些操作会改变容器的大小；array 不支持这些操作
+    * forward_list 有自己专有版本的 insert 和 emplace；见 9.3.4，P312
+    * forward_list 不支持 push_back 和 emplace_back;
+    * vector 和 string 不支持 push_front 和 emplace_front
+    * c.push_back(t)    在 c 的尾部创建一个值为t或由 args 创建的元素，返回 void
+    * c.emplace_back( args)  同上
+    * c.push_front(t)   在 c 的头部创建一个值为t或由 args 创建的元素，返回 void
+    * c.emplace_front(args)  同上
+    * c.insert(p, t)   在迭代器 p 指向的元素之前创建一个值为t或由 args 创建的元素。返回指向新添加的元素的迭代器。
+    * c.emplace(p, args)    同上
+    * c.insert(p, b, e)    将迭代器 b 和 e 指定的范围内的元素插入到迭代器 p 指向的元素之前。b和e不能指向c中的元素。返回指向新添加的第一个元素的迭代器；若范围为空，则返回p。
+    * c.insert(p, il)    il 是一个花括号包围的元素的值列表。将这些给定值插入到迭代器p指向的元素之前。返回指向新添加的第一个元素的迭代器；若列表为空，则返回p。
+
+> 向一个 vector、string或 deque 插入元素会使所有指向容器的迭代器、引用和指针失效。
+
+
+- 牢记分配元素空间的机理，防止影响性能
+    * 在 vector 或 string 的尾部之外的任何位置，或是一个 deque 的首尾之外的任何位置添加元素，都要移动元素
+    * 向一个 vector 或 string 添加元素可能引起整个对象存储空间的重新分配：新建内存，并把旧元素移动到新的内存空间。
+
+
+
+
+#### 使用 push_back 
+
+- 此前用过，把元素添加到vector末尾，用过 push_back。
+- 除了 array 和 forward_list 之外，每个顺序容器（包括string类型）都支持 push_back
+
+```
+// 每个循环读取一个string到word，然后追加到容器尾部
+string word;
+while(cin >> word)
+    containner.push_back(word);
+```
+
+- 对 push_back 的调用在 container 尾部创建了一个新元素，将 containner 的 size 增大了1。
+- 该元素的值为 word 的一个拷贝。
+- containner 的类型可以是 list, vector 或者 deque
+
+由于 string 是一个字符容器，也可以用 push_back在 string 末尾添加字符：
+
+```
+void pluralize(size_t cnt, string &word){
+    if(cnt>1)
+        word.push_back('s'); //等价于 word += 's';
+}
+```
+
+
+> 关键概念：容器元素是拷贝。
+
+
+
+
+
+#### 使用 push_front 
+
+除了 push_back, list、forward_list 和 deque 容器还支持名为 push_front 的类似操作。把元素插入到容器头部。
+
+```
+list<int> ilist;
+//将元素添加到ilist开头
+for(size_t ix=0; ix!=4; ++ix){
+    ilist.push_front(ix);
+}
+```
+
+- 循环把元素 0,1,2,3 添加到 ilist 头部。因此打印的时候，是倒序的。
+
+注意: deque 像 vector 一样提供了随机访问元素的能力，但它提供了 vector 所不支持的 push_front。
+
+- deque 在首尾插入和删除元素耗时是常数时间。与 vector 一样，在 deque 首尾之外的位置插入会很耗时。
+
+
+
+
+
+#### 在容器的特定位置添加元素： insert 
+
+- insert 能在任意位置插入0个或多个元素。
+- vector/ deque/ list 和 string 都支持 insert 成员。
+- forward_list 提供了特殊版本的 insert 成员: P312, 9.3.4
+
+
+每个 insert 函数都接受一个迭代器作为参数一。迭代器指定什么位置放置新元素。可以是任何位置，包括尾后位置。插入位置是迭代器指向位置之前。
+
+```
+slist.insert(iter, "hello!"); //将 "hello!" 添加到 iter 之前的位置
+```
+
+
+虽然某些容器不支持 push_front 操作，但它们对于 insert 操作并无类似的限制（插入开始位置）。因此可以使用 insert 把元素插入开头位置，而不用担心容器是否支持 push_front:
+
+```
+
+```
+
+
+
+
+
+
+> 333/384
+
+
+
+
+
+
+
+
 
 ### 9.3.2 访问元素
 
