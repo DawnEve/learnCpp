@@ -2,7 +2,7 @@
 #include<list>
 using namespace std;
 
-// 插入一个元素
+// 插入一个元素：在迭代器指向位置之前插入，迭代器所在元素的地址不变
 int main(){
     list<int> arr={1,3,5,7};
     auto iter=arr.end();

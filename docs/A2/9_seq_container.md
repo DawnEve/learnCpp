@@ -929,15 +929,141 @@ slist.insert(iter, "hello!"); //将 "hello!" 添加到 iter 之前的位置
 虽然某些容器不支持 push_front 操作，但它们对于 insert 操作并无类似的限制（插入开始位置）。因此可以使用 insert 把元素插入开头位置，而不用担心容器是否支持 push_front:
 
 ```
+list<string> slist;
+vector<string> svect;
 
+//等价于 
+slist.push_front("list.");
+slist.insert(slist.begin(), "Hello!");
+
+// vector 不支持 push_front，但是也可以插入 begin() 之前
+// 警告：插入到 vector 末尾之外的位置都可能很慢
+svect.insert(svect.begin(), "vect");
+svect.insert(svect.begin(), "Hello!");
+```
+
+
+> 警告：将元素插入到 vector、deque和string中的任何位置都是合法的。也是耗时的。
+
+
+
+
+
+#### 插入范围内元素
+
+insert 除了接收一个指向自己的迭代器作为第一个参数，还可以接受更多参数。类似容器构造函数。
+
+
+例1: 接受一个元素数目和一个值，将指定个数的值插入到迭代器指定位置之前，这些元素给定值初始化:
+
+```
+// 将 3个字符串 "Tomcat" 插入到 svect 的尾后位置之前
+svect.insert(svect.end(), 3, "Tomcat");
+```
+
+
+例2: 接受一对迭代器或一个初始化列表的insert版本，经给定范围中的元素插入到指定位置之前
+
+```
+vector<string> source={"this", "is", "a", "book"};
+vector<string> svect={"dest"};
+//把source的最后2个元素插入到svect的末尾
+svect.insert(svect.end(), source.end()-2, source.end()); 
+
+// 传入一个初始化列表
+svect.insert(svect.end(), {"hi", "Tomcat"});
+```
+
+书上说，第2和3个参数是一对迭代器时，不能指向第一个迭代器指向的对象，我测试的至少没有报错:
+
+```
+例2:
+    vector<string> svect={"dest", "nobug"};
+    //把source的最后2个元素插入到svect的末尾
+    print(svect);
+    svect.insert(svect.end(), svect.begin()-2, svect.end()); // 啥也没做
+
+例2:
+    list<string> slist={"dest", "A"};
+    // $ g++ -std=c++11 b5_insert_iter_num_val.cpp
+    // $ ./a.out
+    // dest A dest A  #没有报错.... 
+    slist.insert(slist.end(), slist.begin(), slist.end()); //正常插入
 ```
 
 
 
 
 
+#### 使用 insert 的返回值
 
-> 333/384
+- 新版本，接收元素个数或范围的insert版本返回指向第一个新加入元素的迭代器。（旧版本返回void）
+- 如果范围为空，不插入任何元素，返回insert的第一个参数。
+
+```
+void demo1(){
+    vector<string> svect={"hi"};
+    auto xx = svect.insert(svect.end(), 3, "Tomcat");
+    cout << *xx << ", " << &*xx << endl;
+
+    auto be=svect.begin();
+    cout << *be << ", " << &*be << endl;
+    be++;
+    cout << *be << ", " << &*be << endl;
+}
+
+输出:
+Tomcat, 0x5649d5b8ff00
+hi, 0x5649d5b8fee0
+Tomcat, 0x5649d5b8ff00
+```
+
+
+通过使用  insert 的返回值，可以在容器中一个特定位置反复插入元素:
+
+```
+// 通过insert的返回值，在一个位置反复插入元素
+void demo3(){
+    list<string> lst={"hello"};
+    auto iter=lst.begin();
+    string word;
+    cout << "Please input some word, end with Ctrl+D" << endl;
+    while(cin >> word)
+        iter=lst.insert(iter, word); //等价于 push_front
+    
+    //打印
+    for(auto i: lst)
+        cout << i << " ";
+    cout << endl;
+}
+
+输出:
+Please input some word, end with Ctrl+D
+1 2 34 56
+56 34 2 1 hello
+```
+
+> Note: 理解这个循环是如何工作的非常重要，特别是理解这个循环为什么等价于调用 push_back 尤为重要。
+
+循环前，iter指向第一个元素。然后每次插入到第一个元素之前，并返回指向新插入的元素的迭代器。所以相当于每次都插入到第一个元素之前。
+
+
+
+
+
+#### 使用 emplace 操作
+
+新标准引入三个新成员: emplace_front, emplace 和 emplace_back，这些操作构造而不是拷贝元素。对应 push_front, insert 和 push_back，允许我们将元素放置在容器头部、一个指定位置之前或尾部。
+
+
+
+
+
+
+
+
+
+> 334/384
 
 
 
