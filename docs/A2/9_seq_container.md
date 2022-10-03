@@ -943,7 +943,7 @@ svect.insert(svect.begin(), "Hello!");
 ```
 
 
-> 警告：将元素插入到 vector、deque和string中的任何位置都是合法的。也是耗时的。
+> 警告：将元素插入到 vector、deque和string中的任何位置都是合法的。也可能是耗时的。
 
 
 
@@ -1057,13 +1057,29 @@ Please input some word, end with Ctrl+D
 
 
 
+- 调用 push 或 insert 成员函数时，我们将元素类型的对象传递给它们，这些对象被拷贝到容器中。
+- 当调用 emplace 成员函数时，则是将参数传递给元素类型的构造函数。emplace成员使用这些构造函数在容器管理的内存空间直接构造元素。
 
+```
+    // 加入c保存 Sales_data 元素
+    list<Sales_data> c;
+    // 使用3个参数的 Sales_data 构造函数
+    c.emplace_back("978-05", 25, 15.99);
+    // 错误：没有接收3个参数的 push_back 版本
+    //c.push_back("978-05", 25, 15.99); //error: no matching function for call to
+    //正确，创建一个临时的 Sd对象传递给 push_back
+    c.push_back( Sales_data("978-05", 25, 16.00) );
+```
 
+> emplace 函数的参数根据元素类型而变化，参数必须与元素类型的构造函数相匹配:
 
+```
+c.emplace_back(); //使用 Sales_data 的默认构造函数
+c.emplace(iter, "99-992"); //使用 Sales_data(string)
+//使用 Sales_data(string, int, double) 的构造函数
+c.emplace_front("985-1", 2, 12.99);
+```
 
-
-
-> 334/384
 
 
 
@@ -1075,7 +1091,180 @@ Please input some word, end with Ctrl+D
 
 ### 9.3.2 访问元素
 
+如果容器中没有元素，访问操作的结果是未定义的。
+
+- 包括 array 在内的每个顺序容器都有一个 front 成员函数
+- 除了 forward_list 之外的所有顺序容器都有一个 back 成员函数。
+- 这2个操作分别返回首元素和尾元素的引用。
+
+```
+#include<iostream>
+#include<list>
+using namespace std;
+
+int main(){
+    list<int> c={1, 6};
+    //在解引用一个迭代器或者front或back前检查是否有元素
+    if(!c.empty()){
+        // val 和 val2 是c中第一个元素值的拷贝
+        auto val=*c.begin(), val2=c.front();
+        cout << val << ": " << &*c.begin() << ", " 
+             << val2 << ": " << &c.front() << endl; //地址确实一样
+
+        // val3和 val4 是c中最后一个元素值的拷贝
+        auto last = c.end();
+        auto val3=*(--last); //不能递减 forward_list 迭代器
+        auto val4=c.back(); // forward_list 不支持
+        cout << val3 << ": " << &*last << ", " 
+             << val4 << ": " << &c.back() << endl; //地址确实一样
+    }
+
+    return 0;
+}
+
+
+$ g++ b8_front_back.cpp 
+$ ./a.out 
+1: 0x5637bbff2ec0, 1: 0x5637bbff2ec0
+6: 0x5637bbff2ee0, 6: 0x5637bbff2ee0
+```
+
+- 1. 迭代器 end()指向尾后位置，是不存在的，不能直接解引用。
+- 2. 调用 front 或 end 前，要先检查容器不能为空。
+
+
+- 表9.6 在顺序容器中访问元素的操作
+    * at 和 下标操作只使用于 string、vector、deque 和 array
+    * back 不适用于 forward_list
+    * c.back()   返回c的尾元素的引用。若c为空，函数行为未定义
+    * c.front()  返回c的首元素的引用。若c为空，函数行为未定义
+    * c[n]    返回c中下标为n的元素的引用。n是一个无符号整数。若 n>=c.size()，则函数行为未定义
+    * c.at(n)  返回下标为n的元素的引用。如果下标越界，则抛出 out_of_range 异常
+
+> 对一个空容器调用 front 和 back ，就像使用一个越界的下标一样，是一种严重的程序设计错误。
+
+
+
+
+#### 访问成员函数返回的是引用
+
+- front/back/下标/at 返回的都是引用。
+- 如果容器是const对象，返回的是const的引用。否则，返回的是普通引用。
+
+```
+#include<iostream>
+#include<list>
+using namespace std;
+
+int main(){
+    list<int> c={0,2,4};
+    if(!c.empty()){
+        c.front() = 12; //将12赋值给第一个引用
+        
+        auto &v=c.back(); //获取最后一个元素的引用
+        v=1024; //改变最后一个元素的值
+        auto v2=c.back(); //v2不是一个引用，它是c.back() 的一个拷贝
+        v2=0; //未改变c中的元素
+
+        for(auto i: c)
+            cout << i << " ";
+        cout << endl;
+    }
+
+    return 0;
+}
+
+
+$ g++ b9_back_return_refer.cpp 
+$ ./a.out 
+12 2 1024 
+```
+
+可以使用引用来改变原来容器中元素的值。
+
+如果用auto变量来保存这些函数的返回值，而且希望改变元素的值，必须记得将变量定义为引用类型。
+
+
+
+
+#### 下标操作和安全的随机访问
+
+- 提供快速随机访问的容器(strng/vector/deque/array)也都提供了下标运算符（P91, 3.3.3）
+- 下标必须“在范围内”，即大于等于0，小于容器的大小。
+- 保证下标有效是程序员的责任，编译器不检查这种错误。
+- 如果希望确保下标合法，可以使用 `at` 函数。
+    * at 函数类似下标运算符，但下标越界时会抛出 out_of_range 异常(P173, 5.6)
+
+```
+    vector<string> svec={"this", "is"};
+    cout << svec[0] << endl;
+    //cout << svec[2] << endl; //运行时错误: svec 中没有这个元素
+    // Segmentation fault (core dumped)
+
+    cout << svec.at(1) << endl;
+    //cout << svec.at(2) << endl; //抛出一个 out_of_range 异常
+    //terminate called after throwing an instance of 'std::out_of_range'
+```
+
+
+
+
+
+
+
+
 ### 9.3.3 删除元素
+
+(非 array) 容器也有很多删除元素的方法。
+
+- 表9.7 顺序容器的删除操作
+    * 这些操作会改变容器的大小，所以不适用于 array
+    * forward_list 有特殊版本的 erase，见P312, 9.3.4
+    * forward_list 不支持 pop_back; vector和string 不支持 pop_front
+    * c.pop_back()   删除 c 中尾元素。若c为空，则函数行为未定义。函数返回 void
+    * c.pop_front()   删除c中首元素。若c为空，则函数行为未定义。函数返回void
+    * c.erase(p)    删除迭代器p所指定的元素，返回一个指向被删除元素之后的元素的迭代器。若p指向尾元素，则返回尾后位置。若p是尾后迭代器，则函数行为未定义。
+    * c.erase(p, e)  删除迭代器b和e所指定范围内的元素。返回一个指向最后一个被删元素之后元素的迭代器。若e本身是尾后迭代器，则函数也返回尾后迭代器
+    * c.clear()  删除c中所有元素。返回void
+
+> 删除 deque 中除首尾位置之外的任何元素都会使所有迭代器、引用和指针失效。指向vecotr或string中删除点之后位置的迭代器、引用和指针都会失效。
+
+> 删除元素的成员函数并不检查其参数。在删除元素之前，程序员必须确保它(们)是存在的。
+
+
+
+
+
+#### pop_front 和 pop_back 成员函数
+
+- 分别删除首元素和尾元素。
+- 与 vector和string 不支持 push_front 一样，这些类型也不支持 pop_front。
+- forward_list 不支持 pop_back。
+- 不能对一个空容器执行弹出元素操作。
+
+这些操作返回void，如果需要值，请在弹出前保存。
+
+```
+while(!ilist.empty()){
+    process(ilist.front()); // 对ilist 的首元素进行一些处理
+    ilist.pop_front();    //完成处理后删除元素
+}
+```
+
+
+
+#### 从容器内部删除一个元素
+
+
+
+> 338/384
+
+
+
+
+
+
+
 
 ### 9.3.4 特殊的 forward_list 操作
 
