@@ -420,7 +420,7 @@ $ ./a.out
 array<int, 5> a1={0,1,2,3,4};
 array<int, 5> a2={0};  //所有元素都是0
 a2=a1;  //替换a2中的元素，变为a1的拷贝
-a2={0};  //错误: 不能将一个花括号列表赋值给array  //注: 我认为作者写错了，这里不报错，是把a2元素归零。
+a2={-50};  //错误: 不能将一个花括号列表赋值给array  //注: 我认为作者写错了，这里不报错，是把a2元素归零，首元素设为-50。
 ```
 
 例:
@@ -1253,11 +1253,59 @@ while(!ilist.empty()){
 
 
 
-#### 从容器内部删除一个元素
+#### 从容器内部删除一个元素：erase()
+
+- `c.erase(iter);`
+- `c.erase(iter1, iter2);`
+- 这2种erase形式都返回指向删除的(最后一个)元素之后位置的迭代器。若i后是j，那么 erase(i) 将返回指向j的迭代器。
+
+```
+#include<iostream>
+#include<list>
+using namespace std;
+
+// c.erase(iter); 删除iter指向的元素，返回指向被删元素下一个位置的
+int main(){
+    list<int> lst={0,1,2,3,4,5};
+    auto it=lst.begin();
+    while(it != lst.end()){
+        if( *it % 2)  //如果元素为奇数
+            it = lst.erase(it); //则删除该元素
+        else
+            ++it;
+    }
+
+    // 打印结果
+    for(auto i: lst)
+        cout << i << " ";
+    cout << endl;
+
+    return 0;
+}
+
+$ g++ b12_erase.cpp 
+$ ./a.out 
+0 2 4
+```
+
+- 每一步都先检查是否为奇数，是，就删掉，并将迭代器指向被删掉的元素的下一个元素；如果是偶数，则将迭代器递增，指向下一个位置。
 
 
 
-> 338/384
+
+#### 删除多个元素
+
+```
+// 删除2个迭代器范围内的元素
+// 返回被删元素之后的位置
+elem1=slist.erase(elem1, elem2); // 调用后，elem1 == elem2
+```
+
+- elem1 指向要删除的第一个元素，elem2 指向要删除的最后一个元素之后的位置。
+    * 为什么删除后 elem1 指向的元素还在？还能打印 `*iter1`
+
+- 为了删除一个容器内的所有元素，可以使用 `c.clear();`， 也可以调用 `c.erase(c.begin(), c.end());`
+
 
 
 
@@ -1268,9 +1316,96 @@ while(!ilist.empty()){
 
 ### 9.3.4 特殊的 forward_list 操作
 
+为什么 forward_list 有特殊版本的添加和删除操作？ 考虑从一个单向链表中删除一个元素时发生了什么？
+
+- 删除一个元素会改变序列中的链接。
+    * 比如删掉 elem3会改变elem2，elem2原来指向elem3，删除elem3后，elem2指向elem4.
+    * 添加或删除一个元素后，我们需要访问其前驱，更新其中的链接。
+    * 但 forward_list 是单向链表，没有简单的方法获取其前驱。
+- 所以，在一个 forward_list 中添加或删除一个元素的操作，是通过改变给定元素之后的元素来完成的。
+    * 这样我们能删除下一个元素，能更新当前元素的链接。
+
+由于这些操作与其他容器上的操作的实现方式不同， forward_list 并未定义 insert/ emplace /erase，而是定义了名为 insert_after, emplace_after, erase_after的操作。
+
+- 为了删除 elem3，应该使用指向 elem2的迭代器调用 erase_after。
+- 为了支持这些操作， forward_list 也定义了 before_begin(), 它返回一个 首前(off-the-beginning) 迭代器。
+    * 该迭代器允许我们在链表首元素之前并不存在的元素“之后”添加或删除元素（相当于在链表首元素之前添加或删除元素）
+
+
+- 表9.8: 在 forward_list 中插入或删除元素的操作
+    * lst.before_begin()   返回指向链表首元素之前不存在的元素的迭代器。此迭代器不能解引用。
+    * lst.cbefore_begin()   同上，但返回的是 const_iterator
+    * lst.insert_after(p, t)  在迭代器p之后的位置插入元素。t是一个对象。
+    * lst.insert_after(p, n, t)   n是数量
+    * lst.insert_after(p, b, e)   b和e是表示范围的一对迭代器(b和e不能指向lst内)
+    * lst.insert_after(p, il)    il 是一个花括号列表。
+    * 以上 insert_after() 返回一个指向最后一个插入元素的迭代器。如果范围为空，返回p。若p为尾后迭代器，则函数行为未定义。
+    * emplace_after(p, args)  使用 args在p指定的位置后创建一个元素。返回一个指向这个新元素的迭代器。若p为尾后迭代器，则函数行为未定义
+    * lst.erase_after(p);    删除迭代器p指向的位置之后的元素。
+    * lst.erase_after(b, e);  删除迭代器b和e范围内的元素。
+    * erase_after() 返回一个指向被删元素后的元素的迭代器，若不存在这样的元素，则返回尾后迭代器。如果p指向lst的尾元素或尾后位置，则函数行为未定义。
+
+
+当在 forward_list 中添加或删除元素时，我们必须关注2个迭代器：
+- 一个指向我们要处理的元素
+- 一个指向其前驱
+
+
+例：从 forward_list 中删除奇数元素
+
+```
+#include<iostream>
+#include<forward_list>
+using namespace std;
+
+int main(){
+    forward_list<int> flst={0,1,2,3,4,5};
+    auto prev=flst.before_begin(); //第一个元素之前的位置
+    auto curr=flst.begin(); //第一个元素
+
+    while( curr != flst.end() ){
+        if(*curr % 2)  //当前元素是奇数
+            curr=flst.erase_after(prev);  //则删掉，使用其前的迭代器
+        else{
+            //不是奇数，则2个迭代器都向后移动：前=当前，当前后移
+            prev=curr; 
+            ++curr;
+        }
+    }
+    //打印结果
+    for(auto i: flst)
+        cout << i << " ";
+    cout << endl;
+
+    return 0;
+}
+
+$ g++ b14_forward_list_erase.cpp 
+$ ./a.out 
+0 2 4
+```
+
+
+
+
+
+
+
+
+
 ### 9.3.5 改变容器的大小
 
-### 9.3.6 改变操作可能使迭代器失效
+- 可以使用 resize 来增大或缩小容器。array不支持 resize。
+- 如果当前大小大于新容量，则容器后的元素都会被删除；
+- 如果当前大小小于新大小，会将新元素添加到容器后部。
+
+
+- 表9.9 顺序容器大小操作
+    * resize 不适用于 array
+    * c.resize(n)   调整 c 的大小为n个元素。若 `n<c.size()`, 则多出来的元素将被丢弃。若必须添加新元素，对新元素进行值初始化
+    * c.resize(n, t)  调整c的大小为n个元素。任何新添加的元素都初始化为t。
+
+> 警告：如果 resize() 缩小容器，则指向被删除元素的迭代器、引用和指针都会失效。对vector/ string/ deque 进行 resize() 可能导致迭代器、指针和引用失效。
 
 
 
@@ -1281,6 +1416,127 @@ while(!ilist.empty()){
 
 
 
+
+
+
+### 9.3.6 容器操作可能使迭代器失效
+
+> 警告: 使用失效的迭代器、指针或引用是严重的运行时错误。
+
+- 向容器中添加元素时
+    * 如果容器是vector或string，且存储空间被重新分配，则指向容器的迭代器、指针、引用都会失效。如果存储空间未重新分配，则指向插入位置之前的迭代器、指针、引用有效，之后的失效。
+    * 对于 deque ，插入首尾位置之外的任何位置都会导致迭代器、指针和引用失效。如果在首尾添加元素，迭代器会失效，但指向存在元素的引用和指针不会失效
+    * 对于list和 forward_list，指向容器的迭代器(包括尾后迭代器和首前迭代器)、指针、引用仍有效。
+- 从容器中删除元素时，指向给删除元素的迭代器、指针和引用会失效。当我们删除一个元素后：
+    * 对于list和 forward_list，指向容器其他位置的迭代器、引用和指针仍有效
+    * 对于 deque，如果在首尾之外的任何位置删除元素，name指向被删除元素之外的其他元素的迭代器、引用或指针也会失效。如果是删除deque的尾元素，则尾后迭代器也会失效，但其他迭代器、引用和指针不受影响；如果删除首元素，这些也不受影响。
+    * 对于 vector 和 string，指向被删元素之前元素的迭代器，引用和指针仍然有效。
+    * 注意：我们删除元素时，尾后迭代器总是失效。
+
+
+> 建议: 管理迭代器。由于迭代器增删元素的代码可能会使迭代器失效，因此必须保证每次改变容器的操作之后都正确的重新定位迭代器。这个建议对 vector/ string/ deque 尤为重要。
+
+
+
+
+
+
+
+
+#### 编写改变容器的循环程序
+
+如果循环中调用 insert 或 erase，那么更新迭代器很容易。这些操作都返回迭代器，我们可以用来更新:
+
+```
+// 傻瓜循环，删除偶数元素，复制每个奇数元素
+#include<iostream>
+#include<vector>
+using namespace std;
+
+//在循环中改变容器
+int main(){
+    vector<int> vi={0,1,2,3,4,5};
+    auto iter=vi.begin();  //调用begin 而不是 cbegin，因为我们要改变vi
+    // 删除偶数元素，复制每个奇数元素
+    while(iter != vi.end()) {
+        if( *iter %2){ //如果是奇数
+            iter = vi.insert(iter, *iter); //复制当前元素：在iter所指位置之前插入元素 *iter，返回新插入的元素位置
+            iter+=2; //向前移动2，跳过新插入的元素和原 iter指向的元素
+        }else{
+            iter = vi.erase(iter); // 删除偶数元素：返回被删元素的下一个位置
+        }
+    }
+
+    //打印
+    for(auto i: vi)
+        cout << i << " ";
+    cout << endl; 
+    
+    return 0;
+}
+
+$ g++ b15_modify_ctn_in_loop.cpp 
+$ ./a.out 
+1 1 3 3 5 5 
+```
+
+该程序删除 vector 中的偶数元素，并复制每个奇数元素。我们调用 insert 和 erase 后都更新迭代器，因为两者都会使迭代器失效。
+
+- erase(iter) 返回被删元素的下一个位置
+- insert(iter, val) 在iter指定位置之前插入元素 val, 并指向新添加的元素。所以上文需要递增2次才能到下一个元素。
+
+
+
+
+
+
+
+
+
+
+#### 不要保存 end 返回的迭代器
+
+- 当我们增删vector或 string 的元素后，或在 deque 首尾元素之外任意位置增删元素后，原来end返回的迭代器总是失效。
+- 因此，增删元素的循环必须反复调用end。而不能一直使用循环前保存的end。
+
+例: 一个循环，处理每个元素，并在其后新增一个元素。我们希望跳过新增的元素。
+
+```
+#include<iostream>
+#include<vector>
+using namespace std;
+
+int main(){
+    vector<int> v={0,1,2,3};
+    auto begin=v.begin(), 
+        end=v.end(); //保存尾后迭代器是一个坏主意
+
+    // while(begin != end){ //Segmentation fault (core dumped)
+    while(begin != v.end()){
+        //做一些处理
+        *begin = - *begin; // 改变符号
+        // 插入新值，对begin 重新赋值，否则的话它就会失效
+        ++begin;  //向前移动begin()，因为我们想在此元素后插入元素
+        begin = v.insert(begin, 100); //插入新值
+        ++begin; //向前移动，跳过新插入的值
+    }
+
+    // 打印结果
+    for(auto i: v)
+        cout << i << " ";
+    cout << endl;
+}
+
+$ g++ b16_end_refresh.cpp 
+$ ./a.out 
+0 100 -1 100 -2 100 -3 100
+```
+
+- 使用循环前保存的 end，会导致报错 `Segmentation fault (core dumped)`
+- 这是因为新增元素会使end迭代器失效，这个迭代器不在指向v的任何元素或尾后位置。
+- 必须在每次插入操作后重新调用end()，而不能使用循环前保存的尾后迭代器。
+
+> Tip: 如果在一个循环中插入/删除 deque、string 或 vector 中的元素，不要缓存 end 返回的迭代器。
 
 
 
@@ -1296,6 +1552,24 @@ while(!ilist.empty()){
 
 
 ## 9.4 vector 对象是如何增长的
+
+
+
+
+
+
+
+
+
+
+
+
+> 343/384
+
+
+
+
+
 
 
 
