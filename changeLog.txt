@@ -48,6 +48,7 @@ v0.9.3 add 9.3 顺序容器操作 insert P307
 v0.9.4 add 9.3 顺序容器操作 insert P308
 v0.9.5 add 9.3 顺序容器操作 pop P312
 v0.9.6 add 9.4 vector 对象是如何增长的 P317
+v0.9.7 add CMake
 ## --> commit [使用印刷页码]
 ## ==========> push to github: 
 
@@ -73,4 +74,6 @@ v0.9.6 add 9.4 vector 对象是如何增长的 P317
     P247: 倒数第12行： display的返回类型应该是: "const Screen&".
     P264: 倒数第8行：使用istream构造函数创建一个对象(函数)传递给combine
     P268: 第一段代码 any() 后面少了一个 const，否则报错。
-    
+
+
+
