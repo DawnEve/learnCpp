@@ -48,7 +48,8 @@ v0.9.3 add 9.3 顺序容器操作 insert P307
 v0.9.4 add 9.3 顺序容器操作 insert P308
 v0.9.5 add 9.3 顺序容器操作 pop P312
 v0.9.6 add 9.4 vector 对象是如何增长的 P317
-v0.9.7 add CMake
+v0.9.7 add Z1/CMake/
+v0.9.8 now 9.5 额外的 string 操作 P321
 ## --> commit [使用印刷页码]
 ## ==========> push to github: 
 

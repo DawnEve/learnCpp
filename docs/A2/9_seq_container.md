@@ -1553,6 +1553,129 @@ $ ./a.out
 
 ## 9.4 vector 对象是如何增长的
 
+vector 或 string 需要连续空间存储，保证随机访问的速度。
+
+如果有新增元素，则请求多一些空间，以便减少重新分配新内存空间的频率。
+
+
+
+
+
+#### 管理容量的成员函数
+
+- capacity 告诉我们容器在不扩张内存空间的情况下可以容纳多少个元素；
+- reserve 操作允许我们通知容器它应该准备保存多少个元素
+
+
+- 表9.10 容器大小的管理
+    * shrink_to_fit 只适用于 vector/string/deque
+    * capacity 和 reserve 只适用于 vector 和 string
+    * c.shrink_to_fit() 请将 capacity() 减少为与 size()相同大小
+    * c.capaticy()  不重新分配内存空间的话，c可以保存多少元素
+    * c.reserve(n)  分配至少能容纳 n 个元素的内存空间
+
+> Note: reserve 并不改变容器中元素的数量，它仅影响 vector 预先分配多大的内存空间。
+
+
+- 只有当需要的内存空间超过当前容量时，reserve调用才会改变 vector 的容量。如果需求大于当前容量，reserve 至少分配与需求一样大的空间（可能更大）
+- 如果需求小于等于当前容量，reserve 什么也不做。但需求小于当前容量时，容器不会退回内存空间。因此，调用 reserve 后，capacity 将会大于或等于传递给 reserve 的参数。
+- 所以，调用 reserve 永远不会减少容器占用的内存空间。
+    * 类似的，resize(9.3.5，P314)只改变容器中元素的数目，而不是容器的容量。不能使用 resize 减少容器预留的内存空间。
+- 新标准中， shrink_to_fit 可以要求 deque、vector 或 string 退回不需要的内存空间。但是具体的实现可以选择忽略该请求，也就是说不能保证一定退回内存空间。
+
+
+
+
+#### capacity 和 size
+
+- size 是已经保存的元素个数
+- capacity 是不分配新的内存空间的情况下，它最多可以保存多少个元素。
+
+例：展示 size 和 capacity 的相互作用
+
+```
+#include<iostream>
+#include<vector>
+using namespace std;
+
+int main(){
+    vector<int> ivec;
+    //size 应该是0； capacity 的值依赖于具体实现
+    cout << " ivec size:" << ivec.size()
+         << " capacity:" << ivec.capacity() << endl;
+        
+    // 添加24个元素
+    for(vector<int>::size_type ix=0; ix!=24; ++ix){
+        ivec.push_back(ix);
+    }
+    // size 应该是24； capacity 的值依赖于具体实现
+    cout << " ivec size:" << ivec.size()
+         << " capacity:" << ivec.capacity() << endl;
+    return 0;
+}
+
+$ g++ b17_size_capacity.cpp 
+$ ./a.out 
+ ivec size:0 capacity:0
+ ivec size:24 capacity:32
+```
+
+
+请求分配更多空间
+```
+    ivec.reserve(50);
+    // size 应该是24； capacity 的值依赖于具体实现，应该大于等于50
+    cout << " ivec size:" << ivec.size()
+         << " capacity:" << ivec.capacity() << endl;
+
+输出:
+ivec size:24 capacity:50
+```
+
+
+添加元素，用完剩余空间
+```
+    while( ivec.size() != ivec.capacity() )
+        ivec.push_back(0);
+    // capacity 应该未改变
+    cout << "4 ivec size:" << ivec.size()
+         << " capacity:" << ivec.capacity() << endl;
+
+输出:
+4 ivec size:50 capacity:50
+```
+
+
+再添加1个元素，vector 就不得不重新分配内存空间了
+```
+    ivec.push_back(1);
+    // capacity 应该未改变
+    cout << "5 ivec size:" << ivec.size()
+         << " capacity:" << ivec.capacity() << endl;
+
+输出:
+5 ivec size:51 capacity:100
+```
+
+这里看，似乎每次请求空间，capacity 都是翻倍。
+
+可以采用 shrink_to_fit 要求 vector 退回多余的空间给系统：
+```
+    ivec.shrink_to_fit();
+    cout << "6 ivec size:" << ivec.size()
+         << " capacity:" << ivec.capacity() << endl;
+
+输出:
+6 ivec size:51 capacity:51
+```
+
+> note: 每个 vector 实现都可以选择自己的内存分配策略。但必须遵守一条原则：只有当迫不得已时才可以分配新的内存空间。
+
+
+- 只有在执行 insert 操作时 size 和 capacity 相等，或者调用 resize 或 reserve 是给定的大小超过当前 capacity，vector 才可能重新分配内存空间。
+    * 分配多少取决于实现。
+    * 不同实现都最少一个原则：确保用 push_back 向vector 添加元素的操作有高效率。
+    * 技术上来说，就是在一个初始为空的vector上调用n次push_back来创建一个n个元素的vector，所花费的时间不能超过n的常数倍。
 
 
 
@@ -1562,9 +1685,13 @@ $ ./a.out
 
 
 
+## 9.5 额外的 string 操作
 
 
-> 343/384
+
+
+
+> 347/384
 
 
 
