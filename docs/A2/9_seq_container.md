@@ -1687,11 +1687,118 @@ ivec size:24 capacity:50
 
 ## 9.5 额外的 string 操作
 
+顺序容器共同的操作之外，string类还有一些独有的操作：
+
+- 大多是提供给 string类和C风格字符数组之间互转
+- 部分允许用下标代替迭代器
+
+
+因为这些函数使用了重复的模板，读着心烦。
+
+- 作者建议该部分可以略读：了解 string 支持哪些类型的操作，需要了再回头研读。
+- //todo jump 太繁琐
+
+
+### 9.5.1 构造 string 的其他方法
+
+除了(P76, 3.2.1) 介绍过的string 构造函数，及与其他顺序容器相同的构造函数(P299, 9.3)，string 还有3个构造函数。
+
+- 表 9.11 构造 string 的其他方法
+    * n、len2 和 pos2 都是无符号值
+    * string s(cp, n)  s是cp指向的数组中前n个字符的拷贝。此数组至少应该包含n个字符
+    * string s(s2, pos2)  s是 string s2 从下标 pos2 开始的字符的拷贝。若 pos2>s2.size()，构造函数的行为未定义
+    * string s(s2, pos2, len2)  s是string s2 从下标pos2开始len2个字符的拷贝。若pos2>s2.size()，构造函数的行为未定义。不管len2的值是多少，构造函数最多拷贝 s2.size() - pos2 个字符。
+
+
+#### substr 操作
+
+s.substr(pos, n)  返回一个string，包含s中从pos开始的n个字符的拷贝。pos的默认值是0，n的默认值是 s.size()-pos, 即从pos开始的所有字符。
 
 
 
 
-> 347/384
+
+### 9.5.2 改变 string 的其他操作
+
+string 类型支持顺序容器的赋值运算符以及 assign、insert和erase 操作(P302,9.2.5;  P306,9.3.1;  P311,9.3.3)。
+
+- string 还定义了额外的 insert 和 erase 版本。除了接收迭代器的，还可以接收下标。
+- 下标给出开始删除的位置，或者 insert 到给定值之前的位置。
+
+```
+#include<iostream>
+using namespace std;
+
+int main(){
+    string s="hello";
+    cout << "1 " << s << endl;
+    
+    s.insert(s.size(), 5, '!'); //在s的末尾添加5个感叹号
+    cout << "2 " << s << endl;
+
+    s.erase(s.size()-5, 5);  //从s删除最后5个字符
+    cout << "3 " << s << endl;
+
+    return 0;
+}
+
+$ g++ c1_string_insert.cpp 
+$ ./a.out 
+1 hello
+2 hello!!!!!
+3 hello
+```
+
+标准库string类型还提供了接受C风格字符数组的 insert 和 assign 版本。
+
+```
+#include<iostream>
+using namespace std;
+
+// 接受C风格的字符串数组
+int main(){
+    string s="this is a book";
+    cout << "1 " << s << endl;
+
+    const char *cp="hello, world!";
+    s.assign(cp, 7); // 获取cp前7个字符，覆盖到s上
+    cout << "2 " << s << endl;
+
+    // 插入：要插入的位置，指向新字符串的指针位置
+    s.insert(s.size(), cp+7); //结尾不存在的字符之前插入字符串 cp+7 的拷贝
+    cout << "3 " << s << endl;
+
+    //插入开头
+    string s2="NEW BOOK.";
+    s.insert(0, s2); //在0位置之前插入字符串s2的拷贝
+    cout << "4 " << s << endl;
+
+    // 在s开头之前，插入s2[0]开始到 s2.size()-1个字符
+    string s3="a fox";
+    s.insert(0, s3, 0, s3.size()-1 );
+    cout << " s3.size()=" << s3.size() << endl;
+    cout << "5 " << s << endl;
+}
+
+$ g++ c2_string_insert_C.cpp 
+$ ./a.out 
+1 this is a book
+2 hello, 
+3 hello, world!
+4 NEW BOOK.hello, world!
+ s3.size()=5
+5 a foNEW BOOK.hello, world!
+```
+
+
+
+
+#### append 和 replace 函数
+
+
+
+
+> 349/384
 
 
 
