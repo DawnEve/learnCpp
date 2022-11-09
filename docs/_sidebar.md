@@ -22,8 +22,8 @@
 * Part II C++标准库
     * [8.IO类](A2/8_IO.md)
     * [9.顺序容器](A2/9_seq_container.md)
+    * [10.泛型算法](A2/10_generic.md)
     
-    * [10.泛型容器](A2/8_IO.md)
     * [11.关联容器](A2/8_IO.md)
     * [12.动态内存](A2/8_IO.md)
 

@@ -51,6 +51,7 @@ v0.9.6 add 9.4 vector 对象是如何增长的 P317
 v0.9.7 add Z1/CMake/
 v0.9.8 now 9.5 额外的 string 操作 P321
 v0.9.9 now 9.5 额外的 string 操作 P323
+v1.0.0 now 10.1 泛型算法 P336
 ## --> commit [使用印刷页码]
 ## ==========> push to github: 
 

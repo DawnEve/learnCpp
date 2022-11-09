@@ -1,10 +1,12 @@
 # Logs 阅读进度记录
 
-## open thread
+## (1) Open thread
 
 ### thread1
 
-- 1->P208 -> P221 -> P246
+* 1->P208 -> P221 -> P246 ->rP362
+* jumps chapter 9.5 额外的 string 操作
+* 第十章 泛型算法: 少记录，只写代码，快速过一遍
 
 
 
@@ -12,8 +14,7 @@
 
 
 
-
-## by date
+## (2) By date
 
 ### Part I
 
@@ -29,6 +30,10 @@
 * 2022.8.12 p254/864 c7, class
 * 2022.8.13 p261/864 c7, class
 
+### Part II
 
-## jumps chapter 9.5 额外的 string 操作
+* 2022.11.9 rP362
+
+
+
 
