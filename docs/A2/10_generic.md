@@ -22,8 +22,95 @@
 
 ## 10.1 概述
 
+- 算法大多在 algorithm 头文件中。
+- 标准库还在 numeric 头文件中定义了一组数值泛型算法。
 
-P362/864
+
+- 这些算法不直接操作容器，而是遍历由2个迭代器指定的一个元素范围(9.2.1, P296)。
+
+例1: vector中是否包含某个值，使用标准库的算法 find
+
+```
+#include<iostream>
+#include<vector>
+#include<algorithm>
+using namespace std;
+
+int main(){
+    vector<int> ivec={1,2,5,9,10,15};
+    int val=10;
+    auto result=find(ivec.begin(), ivec.end(), val);
+    cout << "The value " << val << 
+        (result==ivec.end() ? " is NOT in vector": " is in vector") << endl;
+    return 0;
+}
+
+$ g++ a1_find_vector.cpp 
+$ ./a.out 
+The value 10 is in vector
+```
+
+由于find操作的是迭代器，所以可以在任何容器中查找值。
+
+
+例2: 在string的list中用find查找一个值。
+```
+#include<iostream>
+#include<list>
+#include<algorithm>
+using namespace std;
+
+int main(){
+    list<string> lst={"this", "is", "a value"};
+    string val="a value2";
+    auto result=find(lst.cbegin(), lst.cend(), val);
+    cout << "The value '" << val << 
+        (result==lst.cend() ? "' is NOT in list": "' is in list") << endl;
+    return 0;
+}
+
+$ g++ a2_find_list.cpp 
+$ ./a.out 
+The value 'a value2' is NOT in list
+```
+
+
+例3: 类似的，由于指针就像内置数组上的迭代器一样，可以用 find 在数组中查找值:
+```
+#include<iostream>
+#include<algorithm>
+using namespace std;
+
+//内置数组上使用 find 查找值
+int main(){
+    int arr[]={1,2,3,4,5}, len=sizeof(arr)/sizeof(int);
+    printf("begin(arr):%p, arr:%p\n", begin(arr), arr); //首元素地址
+    printf("end(arr):%p, arr+len:%p\n", end(arr), arr+len); //尾后位置地址
+    // 一个给定的值
+    int val=30;
+    int* result=find(begin(arr), end(arr), val);
+    printf("result:%p, arr+len:%p\n", result, arr+len);
+    cout << "The value " << val << 
+        (result==arr+ len ? " is NOT in arr": " is in arr") << endl;
+    return 0;
+}
+
+
+$ g++ a3_find_arr.cpp 
+$ ./a.out 
+begin(arr):0x7ffeccad5940, arr:0x7ffeccad5940
+end(arr):0x7ffeccad5954, arr+len:0x7ffeccad5954
+result:0x7ffeccad5954, arr+len:0x7ffeccad5954
+The value 30 is NOT in arr
+```
+
+
+
+
+#### 算法如何工作
+
+
+rP363/864
 
 
 
