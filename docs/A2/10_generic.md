@@ -166,6 +166,91 @@ $ ./a.out
 
 ## 10.2 初始泛型算法
 
+标准库提供了100多个算法。有一致的结构。
+
+- 除了少数例外，都是对一个输入范围(一对迭代器)的元素进行操作。
+- 使用范围内元素的方式不同：是否读取元素、改变元素或者重排元素。
+
+
+### 10.2.1 只读算法
+
+只读取，比如find和count。
+
+例: 另一个是 accumulate，定义在 numeric 头文件中，前2个参数是迭代器，第三个参数是求和的初始值。
+```
+#include<iostream>
+#include<vector>
+#include<numeric>
+
+using namespace std;
+
+int main(){
+    vector<int> ivec={1,3,5,7};
+    // 对vec中的元素求和，和的初始值是0
+    int sum=accumulate(ivec.begin(), ivec.end(), 0);
+    cout << "sum="  << sum << endl;
+    return 0;
+}
+
+$ g++ a5_accumulate_vector.cpp 
+$ ./a.out 
+sum=16
+```
+
+> Note: accumulate 的第三个参数决定了使用哪个加法运算符以及返回值的类型。
+
+
+
+
+#### 算法和元素类型
+
+例: 由于string 定义了+运算符，所以可以将vector中的string连起来。
+```
+#include<iostream>
+#include<numeric>
+#include<vector>
+
+using namespace std;
+
+int main(){
+    vector<string> svec={"this", "is", "a", "book"};
+    //输出
+    for(auto i: svec)
+        cout << i << endl;
+    // 连起来
+    string sum2=accumulate(svec.begin(), svec.end(), string(""));
+    cout << "sum2=" << sum2 << endl;
+    return 0;
+}
+
+$ g++ a6_accumulate_vector_string.cpp 
+$ ./a.out 
+this
+is
+a
+book
+sum2=thisisabook
+```
+
+字符串字面量当第三个参数报错: const char* 没有定义+运算符：
+```
+string sum2=accumulate(svec.begin(), svec.end(), "");
+//error: cannot convert ‘std::__cxx11::basic_string<char>’ to ‘const char*’ in assignment
+```
+
+
+> 最佳实践: 对于只读而不改变元素的算法，通常最好使用 cbegin() 和 cend() (9.2.3, P298)。但是如果想使用算法返回的迭代器改变元素的值，则使用 begin()和 end().
+
+
+
+
+
+#### 操作2个序列的算法
+
+
+
+
+rP365/864
 
 
 
@@ -173,7 +258,10 @@ $ ./a.out
 
 
 
-rP364/864
+
+
+
+
 
 
 
