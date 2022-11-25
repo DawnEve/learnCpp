@@ -247,10 +247,119 @@ string sum2=accumulate(svec.begin(), svec.end(), "");
 
 #### 操作2个序列的算法
 
+- equal 也是只读算法，确定2个序列是否保存相同的值。按元素逐个比较，都相等则返回true，否则 false。
+- 接收3个迭代器，前两个与之前一样，第三个是指向第二个序列的首元素
+
+```
+#include<iostream>
+#include<vector>
+using namespace std;
+
+int main(){
+    vector<string> s1={"this", "is", "a", "book"}, s2={"this", "is", "a", "book2"};
+    //s2=s1;
+    bool rs=equal(s1.cbegin(), s1.cend(), s2.cbegin());
+    cout << rs << endl;
+    return 0;
+}
+
+$ g++ a7_equal_string.cpp 
+$ ./a.out 
+0
+# 把注释去掉 s2=s1; 则输出 1
+```
+
+- 因为 equal 是通过迭代器实现的，所以可以通过 equal 比较不同类型容器中的元素。
+    * 且元素类型不一定一样，只要能用==比较即可。
+    * 比如例2中 `vector<string> s1`，`list<const char*> s2`;
+- 但是，equal 基于一个重要的假设：第二个序列至少与第一个序列一样长，此算法要处理第一个序列中的每个元素。
+    * 如果第二个序列更长，且之前的元素和序列1一样呢？看例2中的 s1 vs s4，返回值是相等?!
+
+例2: 不同容器类型的元素的比较。
+```
+#include<iostream>
+#include<string>
+#include<list>
+#include<vector>
+
+using namespace std;
+
+int main(){
+    vector<string> s1={"this", "is"};
+    list<const char*> s2={"this", "is"}, s3={"this", "is3"}, s4={"this", "is", "a"};
+    cout << equal(s1.cbegin(), s1.cend(), s2.cbegin()) << endl; //1
+    cout << equal(s1.cbegin(), s1.cend(), s3.cbegin()) << endl; //0
+    cout << equal(s1.cbegin(), s1.cend(), s4.cbegin()) << endl; //1
+    return 0;
+}
+```
+
+> 警告: 那些只接受一个单一迭代器表示第二个序列的算法，都假定第二个序列至少与第一个序列一样长。
 
 
 
-rP365/864
+
+
+
+### 10.2.2 写容器元素的算法
+
+- 记住: 算法不会执行容器操作，因此他们自身不可能改变容器的大小。
+- 一些算法会写入元素，但最多写入与给定序列一样多的元素。
+
+例: fill 接受一对迭代器表示范围，还接受一个值作为参数3，fill把参数3赋值给序列中的每个元素。
+
+```
+#include<iostream>
+#include<vector>
+using namespace std;
+
+int main(){
+    vector<int> ivec={0,1,2,3,4,5};
+    //每个元素重置为0
+    fill(ivec.begin(), ivec.end(), 0);
+    //输出
+    for(auto ele: ivec){
+        cout << ele << endl;
+    }
+    printf("\n");
+
+    //子序列重置为5
+    fill(ivec.begin(), ivec.begin()+ivec.size()/2, 5);
+    //输出
+    for(auto ele: ivec){
+        cout << ele << endl;
+    }
+
+    return 0;
+}
+```
+
+
+> 关键概念: 迭代器参数 P340
+
+
+
+
+
+
+
+
+#### 算法不检查写操作
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+rP366/864
 
 
 
