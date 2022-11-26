@@ -346,6 +346,157 @@ int main(){
 
 #### 算法不检查写操作
 
+- `fill_n(dest, n, value)` 从参数1指定的迭代器开始，共n位置，都填充为值value。
+- dest指向一个元素，比如vec.begin()，从dest开始的序列至少包含n个元素。
+- 如果参数2超过 vec.size()，则未定义 UB。
+
+> 警告: 向目的位置迭代器写入数据的算法假定目的位置足够大，能容纳要写入的元素。
+
+```
+#include<iostream>
+#include<vector>
+using namespace std;
+
+int main(){
+    vector<int> vec;
+    cout << vec.size() << endl;
+
+    vec={1,2,3};
+    cout << vec.size() << endl;
+    fill_n(vec.begin()+1, 2, 100); //从下标1开始的2个位置，填充值100
+    for(auto ele: vec)
+        cout << ele << " ";
+    cout << endl;
+
+    return 0;
+}
+
+$ g++ a10_fill_n.cpp 
+$ ./a.out 
+0
+3
+1 100 100
+```
+
+
+#### 介绍 back_inserter
+
+插入迭代器(insert iterator) 是一种向容器中添加元素的迭代器。
+
+- back_inserter 函数定义在头文件 iterator 中。
+- 接收一个指向容器的引用，返回一个该容器绑定的插入迭代器。
+    - 通过此迭代器赋值时，赋值运算符会调用 push_back 将一个具有给定值的元素添加到容器中。
+
+```
+#include<iostream>
+#include<iterator>
+#include<vector>
+using namespace std;
+
+int main(){
+    vector<int> vec={1,2,3};
+    auto it=back_inserter(vec); //返回迭代器
+    *it=42; //调用 push_back，把等号右侧的元素添加到原容器中
+    for(auto ele: vec)
+        cout << ele << " ";
+    cout << endl;
+
+    return 0;
+}
+
+$ g++ a11_back_inserter.cpp 
+$ ./a.out 
+1 2 3 42
+```
+
+
+- 常常使用 back_inserter 来创建一个迭代器，作为算法的目的位置来使用。
+    * `fill_n( back_inserter(vec), 3, 100)`
+    * 每步的迭代中，fill_n向给定序列的一个元素赋值，由于参数1是 back_inserter 返回的是迭代器，因此每次赋值都会在 vec 上调用 push_back。
+    * 最终在 vec 末尾添加了3个元素，每个元素都是100.
+
+
+```
+#include<iostream>
+#include<iterator>
+#include<vector>
+
+using namespace std;
+
+void demo1(){
+    vector<int> vec={1,2,3};
+
+    fill_n(vec.end()-1, 3, 100); //插入3个元素，每个值是100。结果后面只有1个位置，没有的位置插入失败
+    for(auto ele: vec)
+        cout << ele << " ";
+    cout << endl; 
+}
+
+void demo2(){
+    vector<int> vec={1,2,3};
+
+    auto it= back_inserter(vec);
+    fill_n( it, 3, 100); //插入3个元素，每个值是100。成功
+    for(auto ele: vec)
+        cout << ele << " ";
+    cout << endl; 
+}
+
+
+int main(){
+    demo1();
+    demo2();
+    return 0;
+}
+
+$ g++ a12_back_inserter_fill_n.cpp 
+$ ./a.out 
+1 2 100 
+1 2 3 100 100 100
+```
+
+
+
+#### 拷贝算法 copy
+
+- 接收三个参数: 前2个是范围，第三个表示目的序列的起始位置。
+    * 将收入范围的元素拷贝到目的序列中。
+    * 重要：目的序列至少要包含与输入序列一样多的元素。
+
+例: 使用 copy 实现内置数组的拷贝。`auto ret=copy(begin(a1), end(a1), a2); // 把a1的内容拷贝给a2`
+
+```
+#include<iostream>
+using namespace std;
+
+int main(){
+    //拷贝内置数组：copy
+    int a1[]={1,2,3}, len=sizeof(a1)/sizeof(*a1);
+    int a2[len];
+
+    // print
+    for(auto ele: a2)
+        cout << ele << " ";
+    cout << endl;
+
+    // copy
+    auto ret=copy(begin(a1), end(a1), a2); // 把a1的内容拷贝给a2
+    printf("&a1=%p, &a2=%p, &*ret=%p ret=%p\n", a1, a2, &*ret, ret);
+
+    // print
+    for(auto ele: a2)
+        cout << ele << " ";
+    cout << endl;
+
+    return 0;
+}
+
+$ g++ a13_copy.cpp
+$ ./a.out 
+1503212264 32621 1501466151 
+&a1=0x7ffceb0397cc, &a2=0x7ffceb039760, &*ret=0x7ffceb03976c ret=0x7ffceb03976c
+1 2 3 
+```
 
 
 
@@ -357,9 +508,7 @@ int main(){
 
 
 
-
-
-rP366/864
+rP368/864
 
 
 
