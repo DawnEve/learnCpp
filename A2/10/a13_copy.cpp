@@ -20,5 +20,7 @@ int main(){
         cout << ele << " ";
     cout << endl;
 
+    cout << *(--ret) << endl;
+
     return 0;
 }

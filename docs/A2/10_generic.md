@@ -488,6 +488,8 @@ int main(){
         cout << ele << " ";
     cout << endl;
 
+    cout << *(--ret) << endl;
+
     return 0;
 }
 
@@ -496,43 +498,131 @@ $ ./a.out
 1503212264 32621 1501466151 
 &a1=0x7ffceb0397cc, &a2=0x7ffceb039760, &*ret=0x7ffceb03976c ret=0x7ffceb03976c
 1 2 3 
+3
+```
+
+- copy 返回值是指向其目的位置的迭代器(递增后)。即，ret恰好指向拷贝到 a2 的尾元素之后的位置。
+
+
+多个算法提供所谓的 copy 版本，就是新元素放在新创建的序列中。
+
+例: replace()接受4个参数，并将所有等于参数3的值更改为参数4，前2个是一对输入序列迭代器。
+
+```
+#include<iostream>
+#include<list>
+#include<vector>
+#include<algorithm>
+using namespace std;
+
+void print2(list<int> ctn){
+    for(auto ele: ctn)
+        cout << ele << " ";
+    cout << endl;
+}
+
+void demo1(){
+    list<int> ilist={1,2,3,4,2};
+    //1. 把2替换为 200
+    replace(ilist.begin(), ilist.end(), 2, 200);
+    print2(ilist);
+}
+
+void demo2(){
+    list<int> ilist={1,2,3,4,2};
+    // 2. replace 的 copy 版本: 第三个参数是迭代器，指出替换后序列的保存位置
+    vector<int> ivec;
+    replace_copy(ilist.cbegin(), ilist.cend(), 
+        back_inserter(ivec), 2, 200);
+    print2(ilist); //原容器不变
+
+    // ivec 是ilist 的拷贝，并做了修改
+    for(auto ele: ivec)
+        cout << ele << " ";
+    cout << endl;
+
+}
+
+int main(){
+    demo1();
+    demo2();
+
+    return 0;
+}
+
+$ g++ a14_replace.cpp 
+$ ./a.out 
+1 200 3 4 200 
+1 2 3 4 2 
+1 200 3 4 200
 ```
 
 
 
 
 
+### 10.2.3 重排容器元素的算法
+
+sort 会重排元素的值，是调用 `<` 运算符来实现排序的。
+
+`the quick red fox jumps over the slow red turtle`
+
+#### 消除重复单词
+
+- 先对vector排序 sort。
+    * sort 接受2个迭代器，表示范围，对该范围内进行排序。注意 red和the各出现了2次。
+- 然后执行 unique 的标准库算法来重排 vector，得到不重复的元素出现在vector的开始部分。
+    * 将相邻的重复元素“删除”的只剩下一个。
+    * 返回是非重复元素的下一个位置。后面的元素都还在，但是值未知。
+- 然后使用容器 vector 的erase 真正删除元素。
+
+```
+#include<iostream>
+#include<vector>
+#include<algorithm>
+using namespace std;
+
+void print(vector<string> svec, int i=0){
+    cout << i << " ";
+    for(auto ele: svec)
+        cout << ele<< " ";
+    cout << endl;
+}
+
+int main(){
+    vector<string> svec={"the", "quick", "red", "fox", "jumps", "over", "the", "slow", "red", "turtle"};
+    print(svec);
+    //1.排序: 按字典顺序升序 a-z
+    sort(svec.begin(), svec.end());
+    print(svec,1);
+    //2.unique 重排，每个单词只出现一次；返回值是迭代器，指向unique区域之后的一个位置
+    auto uniq_next = unique(svec.begin(), svec.end());
+    print(svec,2);
+    cout << *(uniq_next-1) << endl;
+    
+    //3.删除其余的元素
+    svec.erase(uniq_next, svec.end());
+    print(svec,3);
+    return 0;
+}
+
+
+$ g++ a15_sort_unique.cpp 
+$ ./a.out 
+0 the quick red fox jumps over the slow red turtle 
+1 fox jumps over quick red red slow the the turtle 
+2 fox jumps over quick red slow the turtle the  
+turtle
+3 fox jumps over quick red slow the turtle
+```
 
 
 
+#### 使用容器操作删除元素
 
+算法不能删除元素，所以调用的是容器的方法。
 
-
-rP368/864
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+即使容器中没有重复项，调用也是安全的。
 
 
 
@@ -544,6 +634,139 @@ rP368/864
 
 
 ## 10.3 定制操作
+
+很多算法的比较操作可以用户自定义，包括`<`或`==`等。
+
+sort，如果想自定义顺序，或者未定义`<`运算符，则需要重载 sort 的默认行为。
+
+
+
+### 10.3.1 向算法传递函数
+
+sort 的第二个版本，可以接受参数3，一个谓词(predicate)。
+
+
+#### 谓词
+
+- 一元谓词 unary predicate，只接受单一参数
+- 二元谓词 binary predicate，有2个参数。
+
+例: 按长度排序
+```
+#include<iostream>
+#include<algorithm>
+#include<vector>
+
+using namespace std;
+
+// 按单词的长度排序
+bool isShorter(const string &s1, const string &s2){
+    return s1.size() < s2.size();
+}
+
+int main(){
+    vector<string> svec={"the", "quick", "red", "fox", "jumps", "over", "the", "slow", "red", "turtle"};
+    sort(svec.begin(), svec.end(), isShorter); //参数3是函数
+    for(auto ele: svec)
+        cout << ele << " ";
+    cout << endl;
+    return 0;
+}
+
+$ g++ a16_sort_fn_Para.cpp 
+$ ./a.out 
+the red fox the red over slow quick jumps turtle
+```
+
+结果：所有长度为3的单词都在长度为4的单词前面，然后是更长的单词。
+
+
+
+
+
+#### 排序算法 stable_sort
+
+等长元素怎么排序？为了保证结果的唯一性，可以使用 stable_sort ，保证等长元素的字典序。
+
+```
+#include<iostream>
+#include<vector>
+#include<algorithm>
+using namespace std;
+
+void elimDups(vector<string> &svec){
+    //排序
+    sort(svec.begin(), svec.end());
+    //保持唯一
+    auto iter=unique(svec.begin(), svec.end());
+    //删除后面的重复元素
+    svec.erase(iter, svec.end());
+}
+
+// 按单词的长度排序
+bool isShorter(const string &s1, const string &s2){
+    return s1.size() < s2.size();
+}
+
+int main(){
+    vector<string> svec2={"the", "quick", "red", "fox", "jumps", "over", "the", "slow", "red", "turtle"};
+    //1.按字典排序，去重
+    elimDups(svec2);
+    for(auto ele: svec2)
+        cout << ele << " ";
+    cout << endl;
+
+    //2. 按长度排序，长度相同的保持字典序
+    stable_sort(svec2.begin(), svec2.end(), isShorter);
+    for(const auto &s: svec2) //无需拷贝字符串
+        cout << s << " ";
+    cout << endl;
+
+    return 0;
+}
+
+$ g++ a17_stable_sort.cpp 
+$ ./a.out 
+fox jumps over quick red slow the turtle 
+fox red the over slow jumps quick turtle
+```
+
+
+
+
+
+### 10.3.2 lambda 表达式
+
+rP371/864
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
