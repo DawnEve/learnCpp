@@ -737,7 +737,215 @@ fox red the over slow jumps quick turtle
 
 ### 10.3.2 lambda 表达式
 
-rP371/864
+例: 只打印大于某个长度的单词。
+
+- 使用朴素方法，for循环后直接使用 `ele.size() > 4` 判断长度
+- find_if()函数
+    * 接受3个参数，前2个是一对迭代器，参数3是一个一元谓词。
+    * 返回迭代器，指向第一个非0值(就是找到符合要求的元素了)；如果都是0，则指向尾后位置
+
+```
+#include<iostream>
+#include<vector>
+#include<algorithm>
+
+using namespace std;
+
+void elimDups(vector<string> &svec){
+    //排序
+    sort(svec.begin(), svec.end());
+    //保持唯一
+    auto iter=unique(svec.begin(), svec.end());
+    //删除后面的重复元素
+    svec.erase(iter, svec.end());
+}
+
+// 按单词的长度排序
+bool isShorter(const string &s1, const string &s2){
+    return s1.size() < s2.size();
+}
+
+void bigger(vector<string> &words, vector<string>::size_type sz){
+    //字典排序，去重
+    elimDups(words); 
+    //按长度排序，等长度的按字典排序
+    stable_sort(words.begin(), words.end(), isShorter);
+    //打印大于某个长度的单词
+    for(auto ele: words){
+        if(ele.size() > sz){
+            cout << ele<< " ";
+        }
+    }
+    cout << endl;
+}
+
+vector<string> svec2={"the", "quick", "red", "fox", "jumps", "over", "the", "slow", "red", "turtle"};
+
+void demo1(){
+    bigger(svec2, 4);
+}
+
+
+// 定义一元谓词，作为 find_if() 的参数3
+bool biggerThan4(string s2){
+    return s2.size() >4;
+}
+
+void demo2(){
+    for(auto ele: svec2)
+        cout << ele << " ";
+    cout << endl;
+    // 获取长度大于n的单词
+    // find_if 的3个参数，前2个是一对迭代器，参数3是一个一元谓词。
+    //      返回迭代器，指向第一个非0值(就是找到符合要求的元素了)；如果都是0，则指向尾后位置
+    auto iter_end=find_if(svec2.begin(), svec2.end(), biggerThan4);
+    cout << *iter_end << endl;
+    // 打印从头到这个迭代器之前的元素
+    for(auto iter=svec2.begin(); iter!=iter_end; iter++)
+        cout << *iter <<" ";
+    cout << endl;
+}
+
+int main(){
+    demo1();
+    demo2();
+    return 0;
+}
+
+
+$ g++ a18_find_if.cpp 
+$ ./a.out 
+jumps quick turtle 
+fox red the over slow jumps quick turtle 
+jumps
+fox red the over slow
+```
+
+如果想传入一个长度参数怎么办？
+
+
+
+#### 介绍 lambda
+
+对于一个对象或表达式，如果可以对其使用调用运算符`()`(P21,1.5.2)，则称它为可调用的。
+
+- 我们可以向算法传递任何类型的 `可调用对象(callable object)`。
+- 如果e是一个可调用的表达式，则可以写 `e(args)`，其中args是一个逗号分割的一个或多个参数的列表。
+- 共4种可调用对象:
+    * 目前学过的可调用对象：函数和函数指针。
+    * 重载了函数调用运算符的类(P506, 14.8)
+    * lambda 表达式(lambda expression)
+
+
+- labmda 表达式可以理解为 未命名的内联函数。
+- 和任何函数类似，一个 lambda 表达式具有一个返回类型，一个参数列表和一个函数体。
+    * 但是 lambda可能定义在函数内部。
+- 定义方式: `[capture list](parameter list) -> return type{function body}`
+    * capture list(捕获列表)是一个 lambda 所在函数中定义的局部变量的列表(通常为空)
+    * return type, parameter list 和 function body 与任何普通函数一样，分别表示返回类型，参数列表和函数体。
+    * 但是，lambda 表达式必须使用 `尾置返回`来指定返回类型(P206, 6.3.3)
+
+可以忽略参数列表和返回类型，但是必须永远包含捕获列表(可以为空，但是不能省略)和函数体
+`auto f=[]{reutrn 10;};`
+
+- 该可调用对象f，不接受参数，返回10.
+- 忽略括号`()`和参数列表，等价于指定一个空参数列表。
+- 忽略返回类型`-> return type`，lambda 根据函数体中的代码推断出返回类型：
+    * 如果函数体只有一个return语句，则返回类型从返回的表达式的类型推断而来
+    * 否则，返回类型为 void。
+
+> Note: 如果lambda的函数体包含了任何单一return语句之外的内容，且未指定返回类型，则返回 void。
+
+```
+#include<iostream>
+using namespace std;
+
+int main(){
+    // 定义 lambda 表达式
+    auto f=[]{return 10;};
+    // 调用
+    cout << f() << endl;
+}
+
+$ g++ a19_lambda.cpp 
+$ ./a.out 
+10
+```
+
+
+
+#### 向 lambda 传递参数
+
+> lambda 不能有默认参数(P211, 6.5.1).
+
+例: 编写一个与 isShorter 功能等价的 lambda
+```
+#include<iostream>
+#include<vector>
+#include<algorithm>
+using namespace std;
+
+void elimDups(vector<string> &svec){
+    //排序
+    sort(svec.begin(), svec.end());
+    //保持唯一
+    auto iter=unique(svec.begin(), svec.end());
+    //删除后面的重复元素
+    svec.erase(iter, svec.end());
+}
+
+void print(vector<string> &svec){
+    for(auto ele: svec)
+        cout << ele << " ";
+    cout << endl;
+}
+
+// lambda 表达式：函数的调用
+void demo1(){
+    auto f=[](const string &s1, const string &s2){
+            return s1.size() < s2.size();
+       };
+    string a1="book", a2="boo";
+    cout << f(a1, a2) << endl;
+    a2="books";
+    cout << f(a1, a2) << endl;
+}
+
+// 使用 lambda 表达式排序
+void demo2(){
+    vector<string> svec2={"the", "quick", "red", "fox", "jumps", "over", "the", "slow", "red", "turtle"};
+    //1.字典排序，去重
+    elimDups(svec2); 
+    print(svec2);
+    //2.按长度排序，等长的按字典序; 
+    // 参数3: lambda 表达式 代替函数 isShorter
+    stable_sort(svec2.begin(), svec2.end(),  
+       [](const string &s1, const string &s2){
+            return s1.size() < s2.size();
+       } );
+    print(svec2);
+}
+
+int main(){
+    demo1();
+    demo2();
+    return 0;
+}
+
+$ g++ a20_lambda_isShorter.cpp 
+$ ./a.out 
+0
+1
+fox jumps over quick red slow the turtle 
+fox red the over slow jumps quick turtle 
+```
+
+
+
+#### 使用捕获列表
+
+
+rP373/864
 
 
 
