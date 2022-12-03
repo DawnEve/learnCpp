@@ -944,45 +944,127 @@ fox red the over slow jumps quick turtle
 
 #### 使用捕获列表
 
+- labmda 定义在函数中， 以[]开始，其中放逗号分隔的名字列表，这些名字都是它所在的函数中定义的。
+- 如果[]中为空，则lambda中使用它所在函数的变量则编译错误：找不到。
 
-rP373/864
+> 一个lambda 只有在其捕获列表中捕获的它所在函数中的布局变量，才能在函数体中使用该变量。
+
+```
+#include<iostream>
+#include<string>
+using namespace std;
+
+//lambda的捕获列表
+void demo1(){
+    string::size_type sz=4;
+    //lambda定义在函数内，则可以使用函数的局部变量，但是需要放到捕获组中
+    auto f=[sz](const string &s){ 
+        return s.size() > sz;
+    };
+    cout << f("hello world") << endl;
+    cout << f("hi") << endl;
+}
+
+void demo2(){
+    string::size_type sz=4;
+    //不放到捕获组中，则报错
+    auto f=[](const string &s){ 
+        //return s.size() > sz; // 编译失败 error: ‘sz’ is not captured
+        return s.size();
+    };
+    cout << f("hello world") << endl;
+    //cout << f("hi") << endl;
+}
+
+int main(){
+    demo1();
+    //demo2();
+
+    return 0;
+}
+
+
+$ g++ a21_lambda_capture.cpp 
+$ ./a.out 
+1
+0
+```
+
+
+#### 调用  find_if
+
+例: 使用 lambda，查找第一个长度大于或等于sz的元素。
+```
+#include<iostream>
+#include<vector>
+#include<algorithm>
+using namespace std;
+
+int main(){
+    vector<string> s2={"this", "is", "a", "black", "cat"};
+    string::size_type sz=5;
+    // 获取一个迭代器，指向第一个满足 size()>=sz 的元素
+    auto rs=find_if(s2.begin(), s2.end(), 
+        [sz](const string &s){
+            return s.size()>=sz;
+        }
+    );
+    cout << *rs << endl;
+    cout << "length:" << s2.end()-rs << endl;
+    return 0;
+}
+
+$ g++ a22_find_if_lambda.cpp 
+$ ./a.out 
+black
+length:2
+```
+
+- 对 find_if 的调用返回一个迭代器，指向第一个长度`>=sz` 的元素。如果这样的元素不存在，则指向尾后位置。
+- `s2.end()-rs` 表示该位置到尾后范围还有几个元素。
+
+
+#### for_each() 算法
+
+前2个参数一对迭代器表示范围，参数3是一个函数或lambda。
+
+例: 打印某个范围的元素。
+
+```
+#include<iostream>
+#include<vector>
+#include<algorithm>
+using namespace std;
+
+int main(){
+    vector<int> ivec={1,3,5,7,9};
+    // 参数3是lambda表达式
+    for_each(ivec.begin(), ivec.end(), 
+        [](const int &s){  cout << s << " "; }
+    );
+    cout << endl;
+    return 0;
+}
+
+$ g++ a23_for_each_lambda.cpp 
+$ ./a.out 
+1 3 5 7 9 
+```
+
+- lambda的函数体使用了2个变量，s是它自己的参数，cout是定义在当前函数外的变量。
+    * 只有当前函数内的局部变量，才必须放到捕获列表中。
+
+> Note: 捕获列表只用于局部非 static 变量，lambda可以直接使用局部 static 变量和在它所在函数之外生命的名字。
 
 
 
 
+#### 完成的 biggies 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+rP375/864
 
 
 
