@@ -1061,10 +1061,263 @@ $ ./a.out
 
 #### 完成的 biggies 
 
+```
+#include<iostream>
+#include<vector>
+#include<algorithm>
+using namespace std;
+
+// fn1 字典排序，去重
+void elimDups(vector<string> &svec){
+    //排序
+    sort(svec.begin(), svec.end());
+    //保持唯一
+    auto iter=unique(svec.begin(), svec.end());
+    //删除后面的重复元素
+    svec.erase(iter, svec.end());
+}
+
+// fn2 根据个数，确实是否用名词复数
+string make_plural(int len, string s1, string s2){
+    if(len<=1) return s1;
+    return s1+s2;
+}
+
+// 完整的 biggies，使用多个算法函数
+void biggies(vector<string> &words,  vector<string>::size_type sz){
+    //1.将words按字典序排序，删除重复的单词
+    elimDups(words); 
+    //2.按长度排序，长度相同的单词维持字典序，参数3是lambda表达式
+    stable_sort(words.begin(), words.end(), 
+        [](const string &a, const string &b){ return a.size() < b.size(); });
+    //3.获取迭代器，指向第一个满足 size()>=sz 的元素
+    auto wc=find_if( words.begin(), words.end(), [sz](const string &s){ return s.size() >= sz; });
+    //4.计算满足 size>=sz 的元素的数目
+    auto count = words.end() - wc;
+    cout << count << " " << make_plural(count, "word", "s") << " of length " << sz << " or longer" << endl;
+    //5.打印>=某长度的单词，每个单词后面空格，使用函数 for_each()，对前2个迭代器指定的范围，使用参数3的函数/lambda
+    for_each(wc, words.end(), [](const string &s){ cout << s << " ";});
+    cout << endl;
+}
+
+
+int main(){
+    vector<string> svec2={"the", "quick", "red", "fox", "jumps", "over", "the", "slow", "red", "turtle"};
+    biggies(svec2, 5);
+}
+
+
+$ g++ a24_biggies.cpp 
+$ ./a.out 
+3 words of length 5 or longer
+jumps quick turtle
+```
 
 
 
-rP375/864
+
+
+
+
+
+
+### 10.3.3 lambda 捕获和返回
+
+- 定义 lambda 时，编译器生成一个与 lambda 对应的新的(未命名的)类类型。(P507, 14.8.1)
+    * 理解: 当向一个函数传递一个 lambda 时，同时定义了一个新类型与该类型的一个对象: 传递的参数就是此编译器生成的类类型的未命名对象。
+    * 类似的，使用 auto 定义一个用 lambda 初始化的变量时，定义了一个从 lambda 生成的类型的对象。 
+
+
+#### 值捕获
+
+- 采用值捕获的前提是 变量可以拷贝。
+- 与参数不同，被捕获的变量的值是**在 lambda 创建时拷贝**，而不是调用时拷贝
+
+```
+#include<iostream>
+using namespace std;
+
+// lambda 表达式捕获值，是在创建时捕获，而不是调用时。
+
+void demo1(){
+    int v1=10; //局部变量
+    auto f=[v1](){ return v1;}; //将v1拷贝到名为f的可调用对象
+
+    v1=-12; //新的值，不影响调用
+    //auto j=f();
+    cout << f() << endl;
+}
+
+int main(){
+    demo1();
+
+    return 0;
+}
+
+
+$ g++ a25_capture_value.cpp 
+$ ./a.out 
+10
+```
+
+
+
+
+#### 引用捕获
+
+```
+#include<iostream>
+using namespace std;
+
+// lambda 表达式捕获值，是在创建时捕获，而不是调用时。
+
+void demo1(){
+    int v2=10; //局部变量
+    auto f=[&v2](){ return v2;}; //返回的是引用
+
+    v2=-12; //新的值
+    //auto j=f();
+    cout << f() << endl; //-12 一直是最新的值
+}
+
+int main(){
+    demo1();
+
+    return 0;
+}
+
+
+$ g++ a26_capture_ref.cpp 
+$ ./a.out 
+-12
+```
+
+- 返回引用，要注意不能返回局部变量的引用，因为函数调用结束时，所引用的局部对象销毁，就会报错找不到。
+- 引用捕获有时是必要的，比如不能拷贝的对象 ostream：
+
+```
+#include<iostream>
+#include<vector>
+#include<algorithm>
+using namespace std;
+
+// 捕获引用: 接受一个 ostream 的引用，用来输出数据，并指定分隔符
+void print(vector<string> &words, 
+    vector<string>::size_type sz,
+    ostream &os=cout,  char c=' '){
+    for_each(words.begin(), words.end(), 
+        [&os, c](const string &s){ os<< s << c;});
+    os << endl;
+}
+
+int main(){
+    vector<string> words={"this", "is", "a", "book"};
+    print(words, words.size(), cout, '-');
+    return 0;
+}
+
+$ g++ a27_capture_ref2.cpp 
+$ ./a.out 
+this-is-a-book-
+```
+
+
+> 警告: 以引用方式捕获一个变量时，必须保证在 lambda 执行时变量是存在的。
+
+#### 也可以从一个函数返回 lambda 对象
+
+* 函数可以直接返回一个可调用对象，或者返回一个类对象，该类含有可调用对象的数据成员。
+* 如果函数返回 lambda ，则与函数不能返回一个局部变量的引用类似，该lambda也不能包含引用捕获。
+
+```
+#include<iostream>
+#include <functional>
+using namespace std;
+
+// 函数返回 lambda 的写法
+// https://stackoverflow.com/questions/4726768/function-returning-a-lambda-expression
+
+// 定义2个lambda
+auto bigger =[](int a, int b) ->int{ if(a>b) return a; return b;};
+auto smaller=[](int a, int b) ->int{ if(a<b) return a; return b;};
+
+// 方法1: 函数返回一个 lambda，输入是(int,int)，返回是 int
+function<int(int, int)> fn(int value){
+    if(value>0) return bigger;
+    return smaller;
+}
+// test
+void demo1(){
+    int x=10, y=20;
+    //cout << bigger(x, y) << endl;
+    //cout << smaller(x, y) << endl;
+    
+    cout << fn(1)(x, y) << endl;
+    cout << fn(-1)(x, y) << endl;
+
+    // 对于函数 fn == *fn; fn == &fn;
+    cout << (fn == *fn) << endl; //1
+    cout << (fn == &fn) << endl; //1
+}
+
+
+// 方法2: 使用 typedef，有函数的返回值
+typedef int (*identity_t)(int, int); // works with gcc 
+// 函数指针的定义方法，前面加上 typedef, 把函数名替换为(*ptrName) 即可
+identity_t fn2(int value){
+    if(value>0) return bigger;
+    return smaller;
+}
+void demo2(){
+    int x=10, y=20;
+    cout << "fn2: " << fn2(1)(x, y) << endl;
+    cout << "fn2: " << fn2(-1)(x, y) << endl;
+
+    cout << "&bigger:" << &bigger << "\t" << "&fn2(1):" << (void *)fn2(1) << endl;
+}
+
+// todo: 函数返回一个 lambda 的引用
+/*
+function<int(int, int)>&& fn3(int value){
+    if(value>0) return &bigger;
+    return &smaller;
+}
+
+void demo3(){
+    int x=10, y=20;
+    cout << fn3(1)(x, y) << endl;
+}
+*/
+
+int main(){
+    demo1(); printf("\n");
+    demo2(); printf("\n");
+    //demo3();
+    return 0;
+}
+
+$ g++ a28_return_lambda.cpp 
+$ ./a.out 
+20
+10
+1
+1
+
+fn2: 20
+fn2: 10
+&bigger:0x556abc8cf152  &fn2(1):0x556abc8cc2aa
+```
+
+
+> 建议: 尽量保持 lambda 的变量捕获简单化。如果可能，要尽量避免捕获指针或引用。防止在捕获后和执行前变量变得不符合预期而报错或错误。
+
+
+
+#### 隐式捕获
+
+
+
+rP377/864
 
 
 
